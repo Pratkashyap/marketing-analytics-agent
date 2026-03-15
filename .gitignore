@@ -1,0 +1,20 @@
+# API keys — NEVER commit these
+.env
+*.env
+.env.*
+!.env.example
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data
+*.duckdb
+
+# Generated dashboard
+dashboard_app.py
+
+# OS
+.DS_Store
