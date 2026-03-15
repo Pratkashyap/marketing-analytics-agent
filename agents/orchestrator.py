@@ -126,9 +126,14 @@ class Orchestrator:
             "intent":   "error",
             "response": ("Please ask a marketing analytics question.\n\n"
                          "Examples:\n"
-                         "• \"How are my campaigns performing this month?\"\n"
+                         "• \"How are all business lines performing vs ROAS target?\"\n"
                          "• \"Which creative format has the best ROAS?\"\n"
-                         "• \"I have SGD 50K extra — where should I allocate it?\""),
+                         "• \"Which creatives need urgent refresh?\"\n"
+                         "• \"I have SGD 50K extra — where should I allocate it?\"\n"
+                         "• \"Full audit: performance, creatives, and budget optimisation\"\n\n"
+                         "Type 'queries' to see all sample queries by agent type.\n"
+                         "Type 'demo' to run a showcase of all agents.\n"
+                         "Type 'dashboard' to build a live visual dashboard."),
             "data":     None,
             "error":    None,
         }
