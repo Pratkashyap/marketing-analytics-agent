@@ -296,8 +296,7 @@ defaults = {
     "messages":     [],
     "pipeline_log": [],
     "pending_query": "",
-    "auto_send":    False,
-    "running":      False,
+    "input_key":    0,
     "stop":         False,
 }
 for k, v in defaults.items():

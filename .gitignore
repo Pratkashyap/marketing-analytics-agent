@@ -13,9 +13,6 @@ __pycache__/
 # Data
 *.duckdb
 
-# Generated dashboard
-dashboard_app.py
-
 # OS
 .DS_Store
 
