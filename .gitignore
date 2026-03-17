@@ -18,3 +18,6 @@ dashboard_app.py
 
 # OS
 .DS_Store
+
+# Generated PDF (large binary — keep local only)
+linkedin-article/*.pdf

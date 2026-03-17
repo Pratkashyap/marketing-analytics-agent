@@ -1,26 +1,25 @@
 """
 Dashboard Agent — Warner Bros. Singapore Marketing Analytics
-4-tab Streamlit UI: Agent Chat | Performance Dashboard | Creative Health | Data Explorer
-Sidebar: Quick Queries panel
+Clean, professional Streamlit dashboard. Light theme. WBD branding.
 
-Open source stack: Streamlit + Plotly + DuckDB (all free)
+Tabs:
+  1. Agent Chat        — live 7-agent pipeline
+  2. Performance       — KPIs, trends, platform, ROAS vs target
+  3. Creative Health   — format performance, fatigue, heatmap
+  4. Data Explorer     — direct SQL on live DuckDB
+
+Sidebar: Quick Queries panel (auto-sends on click)
 """
 
 import os
 import sys
-import json
 import subprocess
-import duckdb
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 DB_PATH       = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/marketing_analytics.duckdb")
 DASHBOARD_OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../dashboard_app.py")
 
-
-# ─────────────────────────────────────────────────────────────
-# Questions the agent asks before building
-# ─────────────────────────────────────────────────────────────
 DASHBOARD_QUESTIONS = [
     {
         "key":     "focus",
@@ -28,7 +27,7 @@ DASHBOARD_QUESTIONS = [
         "options": [
             "1. Overall portfolio (all business lines)",
             "2. Single business line deep-dive",
-            "3. Platform comparison (Meta vs Google vs TikTok vs YouTube)",
+            "3. Platform comparison",
             "4. Creative performance & fatigue",
             "5. Executive summary (CMO view)",
         ],
@@ -47,7 +46,7 @@ DASHBOARD_QUESTIONS = [
     },
     {
         "key":     "business_line",
-        "prompt":  "Which business line? (only if you chose option 2 above)",
+        "prompt":  "Which business line? (only if option 2 above)",
         "options": [
             "1. Theatrical",
             "2. Max Streaming",
@@ -62,879 +61,775 @@ DASHBOARD_QUESTIONS = [
 ]
 
 FOCUS_MAP = {
-    "1": "portfolio",
-    "2": "business_line",
-    "3": "platform",
-    "4": "creative",
-    "5": "executive",
+    "1": "portfolio", "2": "business_line",
+    "3": "platform",  "4": "creative", "5": "executive",
 }
-
 PERIOD_MAP = {
-    "1": ("Last 7 days",    "f.date >= '2026-03-08'"),
-    "2": ("Last 30 days",   "f.date >= '2026-02-13'"),
-    "3": ("March 2026",     "f.date LIKE '2026-03-%'"),
-    "4": ("Full 90 days",   "f.date >= '2025-12-15'"),
+    "1": "last_7",  "2": "last_30",
+    "3": "march",   "4": "last_90",
 }
-
 BL_MAP = {
-    "1": "Theatrical",
-    "2": "Max Streaming",
-    "3": "Home Entertainment",
-    "4": "WB Games",
-    "5": "Licensing & Merch",
+    "1": "Theatrical",        "2": "Max Streaming",
+    "3": "Home Entertainment","4": "WB Games",
+    "5": "Licensing & Merch", "0": None,
 }
 
-
-# ─────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────
-
-def safe_rec(df):
-    """Serialize DataFrame → JSON-safe list of plain Python dicts (no numpy types)."""
-    return json.loads(df.to_json(orient='records'))
-
-
-# ─────────────────────────────────────────────────────────────
-# Data fetchers
-# ─────────────────────────────────────────────────────────────
-
-def fetch_kpis(where: str) -> dict:
-    con = duckdb.connect(DB_PATH, read_only=True)
-    row = con.execute(f"""
-        SELECT
-            ROUND(SUM(spend), 0)       AS total_spend,
-            ROUND(SUM(revenue), 0)     AS total_revenue,
-            ROUND(SUM(revenue)/NULLIF(SUM(spend),0), 2) AS roas,
-            SUM(impressions)           AS impressions,
-            SUM(clicks)                AS clicks,
-            SUM(conversions)           AS conversions,
-            ROUND(AVG(cpm), 2)         AS avg_cpm,
-            ROUND(AVG(ctr), 4)         AS avg_ctr
-        FROM fact_daily_performance f
-        WHERE {where}
-    """).fetchone()
-    con.close()
-    keys = ["total_spend","total_revenue","roas","impressions","clicks","conversions","avg_cpm","avg_ctr"]
-    if row:
-        result = dict(zip(keys, row))
-        # Convert to plain Python types
-        return json.loads(json.dumps(result, default=float))
-    return {}
-
-
-def fetch_daily_trend(where: str):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT date,
-               ROUND(SUM(spend), 2)   AS spend,
-               ROUND(SUM(revenue)/NULLIF(SUM(spend),0), 2) AS roas,
-               SUM(impressions)       AS impressions
-        FROM fact_daily_performance f
-        WHERE {where}
-        GROUP BY date ORDER BY date
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_by_business_line(where: str):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT f.business_line,
-               ROUND(SUM(f.spend), 2) AS spend,
-               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0), 2) AS roas,
-               MAX(c.roas_target) AS target,
-               SUM(f.conversions) AS conversions,
-               ROUND(AVG(f.cpm), 2) AS avg_cpm
-        FROM fact_daily_performance f
-        JOIN dim_campaign c ON f.campaign_id = c.campaign_id
-        WHERE {where}
-        GROUP BY f.business_line ORDER BY spend DESC
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_by_platform(where: str):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT p.platform_name,
-               ROUND(SUM(f.spend), 2) AS spend,
-               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0), 2) AS roas,
-               ROUND(AVG(f.cpm), 2) AS avg_cpm,
-               ROUND(AVG(f.ctr), 3) AS avg_ctr,
-               SUM(f.conversions) AS conversions
-        FROM fact_daily_performance f
-        JOIN dim_platform p ON f.platform_id = p.platform_id
-        WHERE {where}
-        GROUP BY p.platform_name ORDER BY spend DESC
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_top_campaigns(where: str, limit: int = 10):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT c.campaign_name, f.business_line, p.platform_name,
-               ROUND(SUM(f.spend), 2) AS spend,
-               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0), 2) AS roas,
-               MAX(c.roas_target) AS target,
-               SUM(f.conversions) AS conversions
-        FROM fact_daily_performance f
-        JOIN dim_campaign c  ON f.campaign_id  = c.campaign_id
-        JOIN dim_platform p  ON f.platform_id  = p.platform_id
-        WHERE {where}
-        GROUP BY c.campaign_name, f.business_line, p.platform_name
-        ORDER BY spend DESC LIMIT {limit}
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_creative_fatigue(where: str):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT cr.creative_name, cr.format, f.business_line,
-               ROUND(AVG(CASE WHEN f.day_num < 30 THEN f.ctr END), 3) AS early_ctr,
-               ROUND(AVG(CASE WHEN f.day_num >= 60 THEN f.ctr END), 3) AS late_ctr,
-               ROUND(SUM(f.spend), 2) AS spend
-        FROM fact_daily_performance f
-        JOIN dim_creative cr ON f.creative_id = cr.creative_id
-        WHERE {where}
-        GROUP BY cr.creative_name, cr.format, f.business_line
-        HAVING early_ctr IS NOT NULL AND late_ctr IS NOT NULL
-           AND late_ctr < early_ctr * 0.80
-        ORDER BY (late_ctr - early_ctr) ASC LIMIT 10
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_creative_by_format(where: str):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT cr.format,
-               COUNT(DISTINCT cr.creative_id) AS creatives,
-               ROUND(SUM(f.spend), 2)  AS spend,
-               ROUND(AVG(f.ctr), 3)    AS avg_ctr,
-               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0), 2) AS avg_roas,
-               SUM(f.conversions)      AS conversions
-        FROM fact_daily_performance f
-        JOIN dim_creative cr ON f.creative_id = cr.creative_id
-        WHERE {where}
-        GROUP BY cr.format ORDER BY spend DESC
-    """).df()
-    con.close()
-    return df
-
-
-def fetch_top_creatives(where: str, limit: int = 10):
-    con = duckdb.connect(DB_PATH, read_only=True)
-    df  = con.execute(f"""
-        SELECT cr.creative_name, cr.format, f.business_line,
-               ROUND(SUM(f.spend), 2)  AS spend,
-               ROUND(AVG(f.ctr), 3)    AS avg_ctr,
-               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0), 2) AS roas,
-               SUM(f.conversions)      AS conversions
-        FROM fact_daily_performance f
-        JOIN dim_creative cr ON f.creative_id = cr.creative_id
-        WHERE {where}
-        GROUP BY cr.creative_name, cr.format, f.business_line
-        ORDER BY roas DESC LIMIT {limit}
-    """).df()
-    con.close()
-    return df
-
-
-# ─────────────────────────────────────────────────────────────
-# Dashboard code generator
-# ─────────────────────────────────────────────────────────────
 
 def generate_dashboard(config: dict) -> str:
-    """Generate dashboard_app.py — 4-tab UI with Agent Chat, Performance, Creative Health, Data Explorer."""
+    """Write dashboard_app.py and return its path."""
 
-    focus       = FOCUS_MAP.get(config.get("focus", "1"), "portfolio")
-    period_key  = config.get("period", "2")
-    period_label, where = PERIOD_MAP.get(period_key, PERIOD_MAP["2"])
-    bl          = BL_MAP.get(config.get("business_line", "0"), None)
-
-    if focus == "business_line" and bl:
-        where_bl = f"{where} AND f.business_line = '{bl}'"
-        title    = f"Warner Bros. Singapore — {bl} Dashboard"
-    else:
-        where_bl = where
-        title    = "Warner Bros. Singapore — Marketing Analytics Dashboard"
-
-    # Pre-fetch all data
-    kpis          = fetch_kpis(where_bl)
-    daily         = fetch_daily_trend(where_bl)
-    by_bl         = fetch_by_business_line(where_bl)
-    by_plat       = fetch_by_platform(where_bl)
-    campaigns     = fetch_top_campaigns(where_bl)
-    fatigue       = fetch_creative_fatigue(where_bl)
-    by_format     = fetch_creative_by_format(where_bl)
-    top_creatives = fetch_top_creatives(where_bl)
-
-    # Serialize to JSON-safe records
-    daily_rec         = safe_rec(daily)
-    by_bl_rec         = safe_rec(by_bl)
-    by_plat_rec       = safe_rec(by_plat)
-    campaigns_rec     = safe_rec(campaigns)
-    fatigue_rec       = safe_rec(fatigue)
-    by_format_rec     = safe_rec(by_format)
-    top_creatives_rec = safe_rec(top_creatives)
-
-    db_abs       = os.path.abspath(DB_PATH)
-    project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-    env_path     = os.path.join(project_root, ".env")
-
-    code = f'''"""
-Warner Bros. Singapore — Marketing Analytics Dashboard
-4 Tabs: Agent Chat | Performance Dashboard | Creative Health | Data Explorer
-Period: {period_label} | Generated by Dashboard Agent
+    code = r'''"""
+Marketing Analytics Dashboard — Warner Bros. Discovery Singapore
+Clean professional dashboard | 7-Agent AI Pipeline
 """
-
+import os, sys
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import duckdb
-import os
-import sys
-from dotenv import load_dotenv
 
-# ── Setup ─────────────────────────────────────────────
-load_dotenv("{env_path}", override=True)
-sys.path.insert(0, "{project_root}")
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+DB_PATH = os.path.join(_ROOT, "data", "marketing_analytics.duckdb")
+
+# ── Colours ──────────────────────────────────────────────────
+NAVY   = "#1428A0"
+GOLD   = "#B8860B"   # darker gold for light bg readability
+BLUE   = "#3B5BDB"
+WHITE  = "#FFFFFF"
+BG     = "#F8F9FC"
+CARD   = "#FFFFFF"
+BORDER = "#E2E8F0"
+TEXT   = "#0F172A"
+MUTED  = "#64748B"
+GREEN  = "#16A34A"
+RED    = "#DC2626"
+AMBER  = "#D97706"
 
 st.set_page_config(
-    page_title="WB Singapore Analytics",
-    page_icon="🎬",
+    page_title="Marketing Analytics | WBD Singapore",
+    page_icon="https://www.wbd.com/favicon.ico",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Brand colours ─────────────────────────────────────
-WB_BLUE   = "#1428A0"
-WB_YELLOW = "#FFD700"
-WB_DARK   = "#0D0D0D"
-GOOD      = "#00C48C"
-WARN      = "#FFB800"
-BAD       = "#FF4444"
-DB_PATH   = "{db_abs}"
-
-# ── Inline pre-fetched data ────────────────────────────
-kpis          = {kpis}
-daily         = pd.DataFrame({daily_rec})
-by_bl         = pd.DataFrame({by_bl_rec})
-by_plat       = pd.DataFrame({by_plat_rec})
-campaigns     = pd.DataFrame({campaigns_rec})
-fatigue       = pd.DataFrame({fatigue_rec})
-by_format     = pd.DataFrame({by_format_rec})
-top_creatives = pd.DataFrame({top_creatives_rec})
-
-if len(daily) > 0:
-    daily["date"] = pd.to_datetime(daily["date"])
-
-# ── Session state ─────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "quick_query" not in st.session_state:
-    st.session_state.quick_query = None
-
-# ── Orchestrator (cached across reruns) ───────────────
-@st.cache_resource
-def get_orchestrator():
-    try:
-        from agents.orchestrator import Orchestrator
-        return Orchestrator()
-    except Exception as e:
-        return None
-
-# ── Page Header ───────────────────────────────────────
 st.markdown("""
-<div style="background: linear-gradient(90deg, #1428A0 0%, #0D0D0D 100%);
-            padding: 16px 28px; border-radius: 10px; margin-bottom: 12px;">
-  <h1 style="color:#FFD700; margin:0; font-size:22px; font-weight:700;">
-    🎬 {title}
-  </h1>
-  <p style="color:#aaa; margin:4px 0 0; font-size:13px;">
-    Period: {period_label} &nbsp;|&nbsp; Claude AI &nbsp;|&nbsp; SGD &nbsp;|&nbsp; Today: 2026-03-15
-  </p>
+<style>
+  /* Base */
+  .stApp { background-color: #F8F9FC; }
+  .block-container { padding-top: 1rem; }
+  #MainMenu, footer, header { visibility: hidden; }
+
+  /* Sidebar */
+  section[data-testid="stSidebar"] {
+    background: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+  }
+  section[data-testid="stSidebar"] .block-container { padding-top: 0; }
+
+  /* Tabs */
+  .stTabs [data-baseweb="tab-list"] {
+    background: #FFFFFF;
+    border-radius: 6px;
+    border: 1px solid #E2E8F0;
+    padding: 3px;
+    gap: 2px;
+  }
+  .stTabs [data-baseweb="tab"] {
+    color: #64748B;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px;
+    padding: 7px 18px;
+    background: transparent;
+  }
+  .stTabs [aria-selected="true"] {
+    background: #1428A0 !important;
+    color: #FFFFFF !important;
+  }
+
+  /* KPI cards */
+  .kpi { background: #FFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px 16px; }
+  .kpi-label { color: #64748B; font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 5px; }
+  .kpi-value { color: #1428A0; font-size: 24px; font-weight: 800; line-height: 1; }
+  .kpi-delta { font-size: 11px; margin-top: 4px; }
+  .kpi-up   { color: #16A34A; }
+  .kpi-down { color: #DC2626; }
+
+  /* Section titles */
+  .sec { font-size: 14px; font-weight: 700; color: #0F172A;
+         border-left: 3px solid #1428A0; padding-left: 9px;
+         margin: 20px 0 10px; }
+
+  /* Quick query buttons */
+  div[data-testid="stVerticalBlock"] div.stButton > button {
+    background: #F8F9FC;
+    border: 1px solid #E2E8F0;
+    color: #0F172A;
+    border-radius: 5px;
+    font-size: 12px;
+    text-align: left;
+    padding: 6px 10px;
+    width: 100%;
+    font-weight: 500;
+  }
+  div[data-testid="stVerticalBlock"] div.stButton > button:hover {
+    border-color: #1428A0;
+    color: #1428A0;
+    background: #EEF2FF;
+  }
+
+  /* Chat bubbles */
+  .chat-user {
+    background: #EEF2FF; border: 1px solid #C7D2FE;
+    border-radius: 10px 10px 2px 10px;
+    padding: 10px 14px; margin: 6px 0;
+    color: #1E3A8A; font-size: 14px;
+  }
+  .chat-agent {
+    background: #FFFFFF; border: 1px solid #E2E8F0;
+    border-radius: 10px 10px 10px 2px;
+    padding: 10px 14px; margin: 6px 0;
+    color: #0F172A; font-size: 14px;
+  }
+  .pipeline-step {
+    border-left: 2px solid #C7D2FE;
+    padding: 4px 8px; margin: 2px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 11px; color: #64748B;
+    font-family: monospace; background: #F8F9FC;
+  }
+  .pipeline-done { border-left-color: #16A34A !important; color: #16A34A !important; }
+
+  /* Inputs */
+  .stTextInput input, .stTextArea textarea {
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 6px !important;
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+  }
+  .stTextInput input:focus, .stTextArea textarea:focus {
+    border-color: #1428A0 !important;
+    box-shadow: 0 0 0 2px rgba(20,40,160,0.1) !important;
+  }
+
+  /* Agent labels in pipeline */
+  .agent-pill {
+    display: inline-block;
+    background: #EEF2FF; border: 1px solid #C7D2FE;
+    border-radius: 12px; padding: 2px 10px;
+    font-size: 11px; color: #1428A0; font-weight: 600;
+    margin: 2px 0; line-height: 1.8;
+  }
+
+  /* Dataframe */
+  .stDataFrame { border-radius: 8px; overflow: hidden; }
+</style>
+""", unsafe_allow_html=True)
+
+# ── WBD Professional Header ───────────────────────────────────
+# Official-style WB shield — clean SVG, no cartoonish effects
+WB_SHIELD_SVG = """
+<svg width="44" height="50" viewBox="0 0 88 100" xmlns="http://www.w3.org/2000/svg">
+  <path d="M44 2 L82 16 L82 62 Q82 86 44 98 Q6 86 6 62 L6 16 Z"
+        fill="#1428A0" stroke="#B8860B" stroke-width="3"/>
+  <path d="M44 10 L76 22 L76 62 Q76 82 44 93 Q12 82 12 62 L12 22 Z"
+        fill="#1428A0"/>
+  <text x="44" y="65" text-anchor="middle"
+        font-family="Georgia, Times New Roman, serif"
+        font-size="34" font-weight="700"
+        fill="#B8860B" letter-spacing="1">WB</text>
+</svg>
+"""
+
+st.markdown(f"""
+<div style="background:#FFFFFF; padding:16px 24px; border-radius:8px;
+     display:flex; align-items:center; gap:16px;
+     margin-bottom:20px; border:1px solid #E2E8F0;
+     box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+  {WB_SHIELD_SVG}
+  <div style="flex:1; border-left:1px solid #E2E8F0; padding-left:16px;">
+    <div style="font-size:16px; font-weight:800; color:#1428A0; letter-spacing:.5px; line-height:1.2;">
+      Warner Bros. Discovery</div>
+    <div style="font-size:11px; color:#64748B; letter-spacing:.8px; margin-top:2px; text-transform:uppercase;">
+      Singapore · Marketing Analytics · AI Platform</div>
+  </div>
+  <div style="text-align:right; border-left:1px solid #E2E8F0; padding-left:16px;">
+    <div style="font-size:10px; color:#64748B; letter-spacing:.5px; text-transform:uppercase;">Live Data · 7 Agents</div>
+    <div style="font-size:11px; font-weight:700; color:#16A34A; margin-top:3px;">● Online</div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Sidebar: Quick Queries ────────────────────────────
+
+# ── DB helper ─────────────────────────────────────────────────
+@st.cache_data(ttl=60)
+def run_query(sql: str) -> pd.DataFrame:
+    try:
+        con = duckdb.connect(DB_PATH, read_only=True)
+        df  = con.execute(sql).df()
+        con.close()
+        return df
+    except Exception as e:
+        return pd.DataFrame({"error": [str(e)]})
+
+
+# ── Quick Queries ─────────────────────────────────────────────
+QUICK_QUERIES = [
+    ("ROAS vs Targets",        "How are all business lines performing vs ROAS target this month?"),
+    ("Creative Fatigue",        "Which creatives show fatigue and need urgent refresh?"),
+    ("Budget Optimisation",     "Rebalance my budget to maximise blended ROAS across all platforms"),
+    ("Top Campaigns",           "Show me the top 10 campaigns by ROAS this month"),
+    ("Underperformers",         "Which campaigns are below their ROAS target?"),
+    ("Platform Breakdown",      "Compare Meta vs Google vs TikTok vs YouTube performance"),
+    ("Theatrical Performance",  "How is the Theatrical business line performing this month?"),
+    ("WB Games Analysis",       "Analyse WB Games campaign performance and creative formats"),
+    ("Weekly Trend",            "Show me week-over-week performance trend for the last 30 days"),
+    ("TikTok Deep Dive",        "Give me a full TikTok performance analysis with recommendations"),
+    ("Full Performance Review", "Give me a complete marketing performance review across everything"),
+]
+
+# ── Session state ─────────────────────────────────────────────
+defaults = {
+    "messages":    [],
+    "pipeline_log":[],
+    "pending_query": "",
+    "auto_send":   False,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# ── Sidebar ───────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ⚡ Quick Queries")
-    st.markdown("<p style='color:#888; font-size:12px;'>Click to send to Agent Chat</p>", unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+    <div style="padding:14px 0 6px; border-bottom:1px solid #E2E8F0; margin-bottom:10px;">
+      <div style="font-size:11px; font-weight:700; color:#1428A0; letter-spacing:1px;
+           text-transform:uppercase;">Quick Queries</div>
+      <div style="font-size:10px; color:#94A3B8; margin-top:2px;">Click to run instantly</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    QUICK_QUERIES = [
-        ("📊 Analysis",  "How are all business lines performing vs ROAS target this month?"),
-        ("📊 Analysis",  "Why is Max Streaming underperforming and what should we do?"),
-        ("📊 Analysis",  "Compare Meta vs TikTok performance this month"),
-        ("🎨 Creative",  "Which creative format has the best ROAS?"),
-        ("🎨 Creative",  "Which creatives need to be refreshed urgently?"),
-        ("🎨 Creative",  "How are Video 15s vs Static Image creatives performing?"),
-        ("💰 Optimizer", "I have SGD 50K extra — where should I allocate it?"),
-        ("💰 Optimizer", "Which platforms are we over-investing in?"),
-        ("💰 Optimizer", "Rebalance my budget to maximise blended ROAS"),
-        ("⚡ Combo",     "Full audit: performance, creatives, and budget optimisation"),
-        ("⚡ Combo",     "Which business lines need creative refresh AND budget change?"),
-    ]
-
-    for i, (tag, q) in enumerate(QUICK_QUERIES):
-        label = f"{{tag}}  {{q[:36]}}..." if len(q) > 38 else f"{{tag}}  {{q}}"
-        if st.button(label, use_container_width=True, key=f"qq_{{i}}"):
-            st.session_state.quick_query = q
-
-    st.divider()
-    st.markdown("### 🤖 Agent Pipeline")
-    st.markdown("**6 agents active:**")
-    st.markdown("🧠 Orchestrator — routes intent")
-    st.markdown("📊 Data Agent — SQL → DuckDB")
-    st.markdown("🔍 Analysis Agent — performance")
-    st.markdown("🎨 Creative Analyst — formats")
-    st.markdown("💰 Optimizer — budget allocation")
-    st.markdown("⚖️ Quality Critic — review")
-    st.divider()
-    st.markdown("### 📅 Dashboard Info")
-    st.markdown(f"**Period:** {period_label}")
-    st.markdown(f"**Focus:** {focus.replace('_', ' ').title()}")
-    st.markdown("**Data:** 112K rows (DuckDB)")
-
-# ── Tabs ──────────────────────────────────────────────
-tab_chat, tab_perf, tab_creative, tab_data = st.tabs([
-    "💬  Agent Chat",
-    "📊  Performance Dashboard",
-    "🎨  Creative Health",
-    "🔍  Data Explorer",
-])
-
-
-# ══════════════════════════════════════════════════════
-# TAB 1 — AGENT CHAT
-# ══════════════════════════════════════════════════════
-with tab_chat:
-    st.markdown("### 💬 Ask Your Marketing Analytics Agent")
-    st.markdown(
-        "<p style='color:#888; font-size:13px;'>Powered by Claude AI — ask anything about WB Singapore campaigns. "
-        "Use the ⚡ Quick Queries panel on the left to run pre-built questions.</p>",
-        unsafe_allow_html=True,
-    )
-
-    # Render chat history
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-
-    # Consume quick query from sidebar
-    pending = st.session_state.get("quick_query")
-
-    # Chat input
-    user_input = st.chat_input("Ask about campaigns, ROAS, budget allocation, platforms, creatives…")
-
-    if pending and not user_input:
-        user_input = pending
-        st.session_state.quick_query = None
-
-    if user_input:
-        with st.chat_message("user"):
-            st.markdown(user_input)
-        st.session_state.messages.append({{"role": "user", "content": user_input}})
-
-        # ── Agent pipeline icons and labels ────────────────
-        PIPELINE_ICONS = {{
-            "orchestrator":    "🧠", "data_agent":      "📊",
-            "analysis_agent":  "🔍", "creative_analyst": "🎨",
-            "optimizer":       "💰", "critic":           "⚖️",
-        }}
-        PIPELINE_NAMES = {{
-            "orchestrator":    "Orchestrator",    "data_agent":      "Data Agent",
-            "analysis_agent":  "Analysis Agent",  "creative_analyst": "Creative Analyst",
-            "optimizer":       "Optimizer Agent", "critic":           "Quality Critic",
-        }}
-        SKIP_EVENTS = {{"start", "done", "classifying", "refining"}}
-
-        with st.chat_message("assistant"):
-            try:
-                orch = get_orchestrator()
-                if orch is None:
-                    raise RuntimeError("Orchestrator unavailable — check your ANTHROPIC_API_KEY in .env")
-
-                # ── Live pipeline display using st.status ──
-                with st.status("🧠 Running agent pipeline…", expanded=True) as pipeline_status:
-
-                    def on_pipeline_status(agent, event, detail=""):
-                        icon = PIPELINE_ICONS.get(agent, "•")
-                        name = PIPELINE_NAMES.get(agent, agent)
-                        if event == "start":
-                            st.write(f"{{icon}} **{{name}}** starting…")
-                        elif event == "classified":
-                            import json as _json
-                            try:
-                                d = _json.loads(detail)
-                                intent     = d.get("intent", "")
-                                specialist = d.get("specialist", "analysis")
-                                st.write(f"  ↳ Intent: `{{intent}}` · Specialist: `{{specialist}}`")
-                            except Exception:
-                                pass
-                        elif event == "routing":
-                            st.write(f"  ↳ Pipeline: **{{detail}}**")
-                        elif event == "query_executed":
-                            st.write(f"  ↳ ✅ {{detail}} rows fetched from DuckDB")
-                        elif event == "sql_generated":
-                            short_sql = detail.replace("\\n", " ")[:80]
-                            st.write(f"  ↳ SQL: `{{short_sql}}…`")
-                        elif event == "preparing":
-                            st.write(f"  ↳ {{detail}}")
-                        elif event in ("analysing", "optimising"):
-                            st.write(f"  ↳ {{icon}} Generating insights…")
-                        elif event == "reviewing":
-                            st.write(f"  ↳ ⚖️ Scoring: specificity · actionability · accuracy")
-                        elif event == "done":
-                            if agent == "critic":
-                                st.write(f"  ↳ ✅ {{detail}}")
-                            elif agent != "orchestrator":
-                                st.write(f"  ↳ ✅ {{name}} complete")
-
-                    result = orch.run(user_input, verbose=False, on_status=on_pipeline_status)
-                    specialist = result.get("specialist", "analysis")
-                    spec_label = {{"creative": "Creative Analyst", "optimizer": "Optimizer",
-                                   "analysis": "Analysis Agent"}}.get(specialist, specialist)
-                    pipeline_status.update(
-                        label=f"✅ Pipeline complete — routed to **{{spec_label}}**",
-                        state="complete", expanded=False,
-                    )
-
-                raw_resp = result.get("response", "No response generated.")
-
-                # Pretty-format the WB-style markdown response
-                lines, formatted = raw_resp.split("\\n"), []
-                for line in lines:
-                    stripped = line.strip()
-                    if stripped.startswith("**") and stripped.endswith("**"):
-                        formatted.append(f"### {{stripped.strip('*')}}")
-                    elif stripped.startswith("- "):
-                        formatted.append(f"• {{stripped[2:]}}")
-                    elif stripped.startswith("---"):
-                        formatted.append("---")
-                    else:
-                        formatted.append(line)
-                final = "\\n".join(formatted)
-                st.markdown(final)
-                st.session_state.messages.append({{"role": "assistant", "content": final}})
-
-            except Exception as exc:
-                err = f"⚠️ Error: {{exc}}"
-                st.error(err)
-                st.session_state.messages.append({{"role": "assistant", "content": err}})
-
-        st.rerun()
-
-    if st.session_state.messages:
-        if st.button("🗑️  Clear Chat", type="secondary"):
-            st.session_state.messages = []
+    for label, query in QUICK_QUERIES:
+        if st.button(label, key=f"qq_{label}"):
+            st.session_state["pending_query"] = query
+            st.session_state["auto_send"]     = True
             st.rerun()
 
+    st.markdown("""
+    <div style="margin-top:20px; padding-top:14px; border-top:1px solid #E2E8F0;">
+      <div style="font-size:10px; color:#94A3B8; font-weight:600; letter-spacing:.8px;
+           text-transform:uppercase; margin-bottom:8px;">Active Agents</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════
+    for label in ["Orchestrator","Data Agent","Analysis Hub",
+                  "Creative Analyst","Optimizer","Dashboard","Quality Critic"]:
+        st.markdown(f'<div class="agent-pill">{label}</div>', unsafe_allow_html=True)
+
+# ── Tabs ──────────────────────────────────────────────────────
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Agent Chat",
+    "Performance Dashboard",
+    "Creative Health",
+    "Data Explorer",
+])
+
+# ══════════════════════════════════════════════════════════════
+# TAB 1 — AGENT CHAT
+# ══════════════════════════════════════════════════════════════
+with tab1:
+    col_chat, col_pipe = st.columns([3, 1])
+
+    with col_chat:
+        st.markdown('<div class="sec">Ask your marketing analytics team</div>',
+                    unsafe_allow_html=True)
+
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                st.markdown(
+                    f'<div class="chat-user"><strong>You</strong><br>{msg["content"]}</div>',
+                    unsafe_allow_html=True)
+            else:
+                content = msg["content"].replace("\n", "<br>")
+                st.markdown(
+                    f'<div class="chat-agent"><strong>Agent Team</strong><br>{content}</div>',
+                    unsafe_allow_html=True)
+
+        input_val = st.session_state.get("pending_query", "")
+        user_input = st.text_input(
+            "question", value=input_val,
+            placeholder="e.g. Which platforms are underperforming vs ROAS target this month?",
+            label_visibility="collapsed",
+            key="chat_input",
+        )
+
+        col_send, col_clear = st.columns([5, 1])
+        with col_send:
+            send_clicked = st.button("Send to Agent Team", use_container_width=True)
+        with col_clear:
+            if st.button("Clear", help="Clear conversation"):
+                st.session_state.messages    = []
+                st.session_state.pipeline_log = []
+                st.rerun()
+
+        # Trigger: either button or auto_send from quick query
+        should_send = (send_clicked and user_input.strip()) or \
+                      (st.session_state.get("auto_send") and input_val.strip())
+
+        if should_send:
+            query_to_send = user_input.strip() or input_val.strip()
+            st.session_state.messages.append({"role": "user", "content": query_to_send})
+            st.session_state.pipeline_log = []
+            st.session_state["auto_send"]     = False
+            st.session_state["pending_query"] = ""
+
+            with st.spinner("Agent team processing..."):
+                try:
+                    from agents.orchestrator import Orchestrator
+                    steps = []
+
+                    def on_status(agent, event, detail=""):
+                        labels = {
+                            "orchestrator":    "Orchestrator",
+                            "data_agent":      "Data Agent",
+                            "analysis_agent":  "Analysis Hub",
+                            "creative_analyst":"Creative Analyst",
+                            "optimizer":       "Optimizer",
+                            "critic":          "Quality Critic",
+                        }
+                        label = labels.get(agent, agent.replace("_"," ").title())
+                        step  = f"{label}  ·  {event}"
+                        if detail:
+                            step += f"  —  {detail}"
+                        steps.append(step)
+
+                    result   = Orchestrator().run(query_to_send, verbose=False, on_status=on_status)
+                    response = (result.get("response")
+                                or result.get("analysis")
+                                or result.get("data_summary", "No response."))
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    st.session_state.pipeline_log = steps
+                except Exception as e:
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": f"Agent error: {e}"})
+
+            st.rerun()
+
+    with col_pipe:
+        st.markdown('<div class="sec">Pipeline</div>', unsafe_allow_html=True)
+        if len(st.session_state.pipeline_log) > 0:
+            for step in st.session_state.pipeline_log:
+                cls = "pipeline-done" if any(
+                    x in step.lower() for x in ["done","approved","complete"]) else "pipeline-step"
+                st.markdown(f'<div class="{cls}">{step}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="color:#94A3B8; font-size:12px; padding:12px 0; line-height:1.8;">
+              Pipeline steps will appear here once you send a question.
+            </div>
+            """, unsafe_allow_html=True)
+            for a in ["Orchestrator","Data Agent","Analysis Hub",
+                      "Creative Analyst","Optimizer","Quality Critic"]:
+                st.markdown(f'<div class="agent-pill">{a}</div>', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════
 # TAB 2 — PERFORMANCE DASHBOARD
-# ══════════════════════════════════════════════════════
-with tab_perf:
+# ══════════════════════════════════════════════════════════════
+with tab2:
+    st.markdown('<div class="sec">Key Performance Indicators — Last 30 Days</div>',
+                unsafe_allow_html=True)
 
-    # — KPI Row —
-    st.subheader(f"Key Metrics — {period_label}")
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    roas_val = kpis.get("roas", 0) or 0
-    with c1: st.metric("Total Spend",   f"SGD {{kpis.get('total_spend', 0):,.0f}}")
-    with c2: st.metric("Total Revenue", f"SGD {{kpis.get('total_revenue', 0):,.0f}}")
-    with c3: st.metric("Blended ROAS",  f"{{roas_val:.2f}}x",
-                        delta=f"{{roas_val - 3.5:.2f}}x vs 3.5x target")
-    with c4: st.metric("Impressions",   f"{{kpis.get('impressions', 0) / 1e6:.1f}}M")
-    with c5: st.metric("Clicks",        f"{{kpis.get('clicks', 0) / 1e3:.0f}}K")
-    with c6: st.metric("Conversions",   f"{{kpis.get('conversions', 0) / 1e3:.0f}}K")
+    kpi_df = run_query("""
+        SELECT ROUND(SUM(spend),0) AS total_spend,
+               ROUND(SUM(revenue),0) AS total_revenue,
+               ROUND(SUM(revenue)/NULLIF(SUM(spend),0),2) AS blended_roas,
+               SUM(impressions) AS impressions,
+               SUM(clicks) AS clicks,
+               SUM(conversions) AS conversions
+        FROM fact_performance
+        WHERE date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+    """)
+    kpi_prev = run_query("""
+        SELECT ROUND(SUM(revenue)/NULLIF(SUM(spend),0),2) AS blended_roas
+        FROM fact_performance
+        WHERE date >= CAST(CURRENT_DATE - INTERVAL 60 DAY AS VARCHAR)
+          AND date <  CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+    """)
 
-    st.divider()
+    if len(kpi_df) > 0 and "error" not in kpi_df.columns:
+        row  = kpi_df.iloc[0]
+        prev = kpi_prev.iloc[0] if len(kpi_prev) > 0 else None
 
-    # — Row 1: Daily Trend + Platform Pie —
-    col_l, col_r = st.columns([3, 2])
+        def fmt(n):
+            n = float(n or 0)
+            if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+            if n >= 1_000:     return f"{n/1_000:.0f}K"
+            return str(int(n))
 
-    with col_l:
-        st.subheader("📈 Daily Spend & ROAS Trend")
-        if len(daily) > 0:
-            fig = make_subplots(specs=[[{{"secondary_y": True}}]])
+        roas_val   = float(row.blended_roas or 0)
+        roas_delta = ""
+        if prev is not None and prev.blended_roas:
+            diff = roas_val - float(prev.blended_roas or 0)
+            cls  = "kpi-up" if diff >= 0 else "kpi-down"
+            sign = "+" if diff >= 0 else ""
+            roas_delta = f'<div class="kpi-delta {cls}">{sign}{diff:.2f}x vs prev 30d</div>'
+
+        cols = st.columns(6)
+        for col, label, val, delta in zip(cols, [
+            "Total Spend","Total Revenue","Blended ROAS","Impressions","Clicks","Conversions"
+        ],[
+            f"SGD {fmt(row.total_spend)}",
+            f"SGD {fmt(row.total_revenue)}",
+            f"{roas_val:.2f}x",
+            fmt(row.impressions),
+            fmt(row.clicks),
+            fmt(row.conversions),
+        ],[
+            "", "", roas_delta, "", "", ""
+        ]):
+            with col:
+                st.markdown(
+                    f'<div class="kpi"><div class="kpi-label">{label}</div>'
+                    f'<div class="kpi-value">{val}</div>{delta}</div>',
+                    unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        st.markdown('<div class="sec">Daily Spend & ROAS Trend</div>', unsafe_allow_html=True)
+        trend_df = run_query("""
+            SELECT date,
+                   ROUND(SUM(spend),0) AS spend,
+                   ROUND(SUM(revenue)/NULLIF(SUM(spend),0),2) AS roas
+            FROM fact_performance
+            WHERE date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+            GROUP BY date ORDER BY date
+        """)
+        if len(trend_df) > 0 and "error" not in trend_df.columns:
+            fig = go.Figure()
             fig.add_trace(go.Bar(
-                x=daily["date"], y=daily["spend"],
-                name="Daily Spend (SGD)", marker_color=WB_BLUE, opacity=0.8,
-            ), secondary_y=False)
+                x=trend_df.date, y=trend_df.spend,
+                name="Spend (SGD)", marker_color=NAVY, opacity=0.75, yaxis="y"))
             fig.add_trace(go.Scatter(
-                x=daily["date"], y=daily["roas"],
-                name="ROAS", line=dict(color=WB_YELLOW, width=2.5),
-                mode="lines+markers", marker=dict(size=4),
-            ), secondary_y=True)
-            fig.add_hline(y=3.5, line_dash="dot", line_color="red",
-                          annotation_text="Target 3.5x", secondary_y=True)
+                x=trend_df.date, y=trend_df.roas,
+                name="ROAS", line=dict(color=AMBER, width=2),
+                mode="lines+markers", marker=dict(size=3), yaxis="y2"))
             fig.update_layout(
-                plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-                font=dict(color="white"), legend=dict(bgcolor="#1a1a1a"),
-                height=320, margin=dict(t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color=TEXT, height=290, margin=dict(l=0,r=0,t=0,b=0),
+                legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)", font_size=11),
+                yaxis=dict(title="Spend SGD", gridcolor=BORDER, color=MUTED),
+                yaxis2=dict(title="ROAS", overlaying="y", side="right",
+                            color=AMBER, gridcolor="rgba(0,0,0,0)"),
+                xaxis=dict(gridcolor=BORDER),
             )
-            fig.update_yaxes(title_text="Spend (SGD)", secondary_y=False, gridcolor="#222")
-            fig.update_yaxes(title_text="ROAS",        secondary_y=True,  gridcolor="#222")
             st.plotly_chart(fig, use_container_width=True)
 
-    with col_r:
-        st.subheader("🎯 Spend by Platform")
-        if len(by_plat) > 0:
-            fig2 = px.pie(
-                by_plat, values="spend", names="platform_name",
-                color_discrete_sequence=[WB_BLUE, WB_YELLOW, "#00C48C", "#FF6B6B"],
-                hole=0.45,
-            )
-            fig2.update_layout(
-                plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-                font=dict(color="white"), height=320,
-                margin=dict(t=10, b=10, l=10, r=10),
-                legend=dict(bgcolor="#1a1a1a"),
-            )
-            st.plotly_chart(fig2, use_container_width=True)
-
-    st.divider()
-
-    # — Row 2: ROAS vs Target + Platform Table —
-    col_a, col_b = st.columns([3, 2])
-
-    with col_a:
-        st.subheader("📊 ROAS by Business Line vs Target")
-        if len(by_bl) > 0:
-            colors = [
-                GOOD if r >= t else BAD
-                for r, t in zip(by_bl["roas"], by_bl["target"])
-            ]
-            fig3 = go.Figure()
-            fig3.add_trace(go.Bar(
-                x=by_bl["business_line"], y=by_bl["roas"],
-                name="Actual ROAS", marker_color=colors,
-                text=by_bl["roas"].apply(lambda x: f"{{x:.2f}}x"),
-                textposition="outside",
+    with c2:
+        st.markdown('<div class="sec">Spend by Platform</div>', unsafe_allow_html=True)
+        plat_df = run_query("""
+            SELECT platform, ROUND(SUM(spend),0) AS spend
+            FROM fact_performance
+            WHERE date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+            GROUP BY platform ORDER BY spend DESC
+        """)
+        if len(plat_df) > 0 and "error" not in plat_df.columns:
+            fig = go.Figure(go.Pie(
+                labels=plat_df.platform, values=plat_df.spend, hole=0.5,
+                marker=dict(colors=[NAVY,"#3B5BDB","#6B8EE0","#A5B4FC"],
+                            line=dict(color=WHITE, width=2)),
+                textfont_color=TEXT,
             ))
-            fig3.add_trace(go.Scatter(
-                x=by_bl["business_line"], y=by_bl["target"],
-                name="Target ROAS", mode="markers",
-                marker=dict(symbol="line-ew", size=22, color=WB_YELLOW,
-                            line=dict(width=3, color=WB_YELLOW)),
-            ))
-            fig3.update_layout(
-                plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-                font=dict(color="white"), height=340,
-                margin=dict(t=10, b=10), legend=dict(bgcolor="#1a1a1a"),
-                yaxis=dict(gridcolor="#222"),
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", font_color=TEXT,
+                height=290, margin=dict(l=0,r=0,t=0,b=0),
+                legend=dict(font_size=11, bgcolor="rgba(0,0,0,0)"),
+                annotations=[dict(text="Spend", x=0.5, y=0.5,
+                                  font_size=13, font_color=MUTED, showarrow=False)],
             )
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-    with col_b:
-        st.subheader("📡 Platform Performance")
-        if len(by_plat) > 0:
-            df_p2 = by_plat[["platform_name", "spend", "roas", "avg_cpm", "avg_ctr"]].copy()
-            df_p2.columns = ["Platform", "Spend (SGD)", "ROAS", "CPM (SGD)", "CTR %"]
-            df_p2["Spend (SGD)"] = df_p2["Spend (SGD)"].apply(lambda x: f"{{x:,.0f}}")
-            df_p2["ROAS"]        = df_p2["ROAS"].apply(lambda x: f"{{x:.2f}}x")
-            df_p2["CPM (SGD)"]   = df_p2["CPM (SGD)"].apply(lambda x: f"{{x:.2f}}")
-            df_p2["CTR %"]       = df_p2["CTR %"].apply(lambda x: f"{{x:.2f}}%")
-            st.dataframe(df_p2, use_container_width=True, hide_index=True, height=340)
-
-    st.divider()
-
-    # — Top Campaigns Table —
-    st.subheader("🏆 Top 10 Campaigns by Spend")
-    if len(campaigns) > 0:
-        df_c = campaigns.copy()
-        df_c["vs_target"] = df_c["roas"] - df_c["target"]
-        df_c["Status"]    = df_c["vs_target"].apply(
-            lambda x: "✅ Above" if x >= 0 else f"🔴 {{x:.2f}}x below"
+    st.markdown('<div class="sec">ROAS vs Target by Business Line</div>', unsafe_allow_html=True)
+    roas_df = run_query("""
+        SELECT bl.business_line_name AS business_line,
+               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS actual_roas
+        FROM fact_performance f
+        JOIN dim_business_line bl ON f.business_line_id = bl.business_line_id
+        WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+        GROUP BY bl.business_line_name ORDER BY actual_roas DESC
+    """)
+    ROAS_TARGETS = {"Theatrical":3.5,"Max Streaming":4.0,"Home Entertainment":3.0,
+                    "WB Games":3.5,"Licensing & Merch":2.5}
+    if len(roas_df) > 0 and "error" not in roas_df.columns:
+        roas_df["target"] = roas_df["business_line"].map(ROAS_TARGETS).fillna(3.0)
+        roas_df["gap"]    = roas_df["actual_roas"] - roas_df["target"]
+        colors = [GREEN if g >= 0 else RED for g in roas_df["gap"]]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=roas_df["business_line"], x=roas_df["actual_roas"], orientation="h",
+            name="Actual ROAS", marker_color=colors,
+            text=[f"{v:.2f}x" for v in roas_df["actual_roas"]],
+            textposition="outside", textfont_color=TEXT,
+        ))
+        fig.add_trace(go.Scatter(
+            y=roas_df["business_line"], x=roas_df["target"], mode="markers",
+            name="Target", marker=dict(symbol="line-ns", size=14,
+                                       color=AMBER, line=dict(width=2, color=AMBER)),
+        ))
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font_color=TEXT, height=270, margin=dict(l=0,r=50,t=0,b=0),
+            xaxis=dict(title="ROAS", gridcolor=BORDER),
+            yaxis=dict(gridcolor="rgba(0,0,0,0)"),
+            legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)"),
+            bargap=0.35,
         )
-        df_c["spend_fmt"] = df_c["spend"].apply(lambda x: f"SGD {{x:,.0f}}")
-        df_c["roas_fmt"]  = df_c["roas"].apply(lambda x: f"{{x:.2f}}x")
-        disp = df_c[["campaign_name", "business_line", "platform_name",
-                     "spend_fmt", "roas_fmt", "conversions", "Status"]]
-        disp.columns = ["Campaign", "Business Line", "Platform",
-                        "Spend", "ROAS", "Conversions", "vs Target"]
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown('<div class="sec">Top 10 Campaigns by ROAS</div>', unsafe_allow_html=True)
+    camp_df = run_query("""
+        SELECT c.campaign_name,
+               bl.business_line_name AS business_line,
+               p.platform_name       AS platform,
+               ROUND(SUM(f.spend),0)   AS spend,
+               ROUND(SUM(f.revenue),0) AS revenue,
+               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS roas
+        FROM fact_performance f
+        JOIN dim_campaign      c  ON f.campaign_id      = c.campaign_id
+        JOIN dim_business_line bl ON f.business_line_id = bl.business_line_id
+        JOIN dim_platform      p  ON f.platform_id      = p.platform_id
+        WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+        GROUP BY c.campaign_name, bl.business_line_name, p.platform_name
+        HAVING SUM(f.spend) > 1000
+        ORDER BY roas DESC LIMIT 10
+    """)
+    if len(camp_df) > 0 and "error" not in camp_df.columns:
+        d = camp_df.copy()
+        d["spend"]   = d["spend"].apply(lambda x: f"SGD {int(x):,}")
+        d["revenue"] = d["revenue"].apply(lambda x: f"SGD {int(x):,}")
+        d["roas"]    = d["roas"].apply(lambda x: f"{x:.2f}x")
+        d.columns    = ["Campaign","Business Line","Platform","Spend","Revenue","ROAS"]
+        st.dataframe(d, use_container_width=True, hide_index=True)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 3 — CREATIVE HEALTH
+# ══════════════════════════════════════════════════════════════
+with tab3:
+    st.markdown('<div class="sec">Creative Format Performance — Last 30 Days</div>',
+                unsafe_allow_html=True)
+
+    fmt_df = run_query("""
+        SELECT cr.format,
+               ROUND(AVG(f.ctr)*100,2) AS avg_ctr,
+               ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS roas,
+               ROUND(SUM(f.spend),0)   AS spend,
+               COUNT(DISTINCT cr.creative_id) AS num_creatives
+        FROM fact_performance f
+        JOIN dim_creative cr ON f.creative_id = cr.creative_id
+        WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+        GROUP BY cr.format ORDER BY roas DESC
+    """)
+    CTR_BENCH = {"Video 15s":3.0,"Video 30s":2.3,"Static Image":1.8,
+                 "Carousel":2.2,"Story":2.0,"Reel":2.6,"YouTube Pre-roll":1.9}
+
+    ca, cb = st.columns(2)
+    with ca:
+        if len(fmt_df) > 0 and "error" not in fmt_df.columns:
+            fig = go.Figure(go.Bar(
+                x=fmt_df["format"], y=fmt_df["roas"],
+                marker_color=NAVY, opacity=0.85,
+                text=[f"{v:.2f}x" for v in fmt_df["roas"]],
+                textposition="outside", textfont_color=TEXT,
+            ))
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color=TEXT, height=270, margin=dict(l=0,r=0,t=30,b=0),
+                title=dict(text="ROAS by Format", font_color=TEXT, font_size=13),
+                xaxis=dict(gridcolor=BORDER, tickangle=-20),
+                yaxis=dict(title="ROAS", gridcolor=BORDER),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    with cb:
+        if len(fmt_df) > 0 and "error" not in fmt_df.columns:
+            fmt_df["benchmark"]    = fmt_df["format"].map(CTR_BENCH).fillna(2.0)
+            fmt_df["ctr_vs_bench"] = (fmt_df["avg_ctr"] - fmt_df["benchmark"]).round(2)
+            c_list = [GREEN if v >= 0 else RED for v in fmt_df["ctr_vs_bench"]]
+            fig = go.Figure(go.Bar(
+                x=fmt_df["format"], y=fmt_df["ctr_vs_bench"],
+                marker_color=c_list,
+                text=[f"{v:+.2f}%" for v in fmt_df["ctr_vs_bench"]],
+                textposition="outside", textfont_color=TEXT,
+            ))
+            fig.add_hline(y=0, line_color=AMBER, line_width=1.2)
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color=TEXT, height=270, margin=dict(l=0,r=0,t=30,b=0),
+                title=dict(text="CTR vs Industry Benchmark", font_color=TEXT, font_size=13),
+                xaxis=dict(gridcolor=BORDER, tickangle=-20),
+                yaxis=dict(title="CTR Delta (%)", gridcolor=BORDER),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown('<div class="sec">Creative Fatigue Analysis</div>', unsafe_allow_html=True)
+    fatigue_df = run_query("""
+        SELECT cr.creative_name,
+               cr.format,
+               p.platform_name AS platform,
+               COUNT(DISTINCT f.date) AS days_running,
+               ROUND(AVG(CASE WHEN f.date <= CAST(CURRENT_DATE - INTERVAL 45 DAY AS VARCHAR)
+                              THEN f.ctr END)*100,2) AS early_ctr,
+               ROUND(AVG(CASE WHEN f.date >= CAST(CURRENT_DATE - INTERVAL 14 DAY AS VARCHAR)
+                              THEN f.ctr END)*100,2) AS recent_ctr,
+               ROUND(SUM(f.spend),0) AS total_spend
+        FROM fact_performance f
+        JOIN dim_creative cr ON f.creative_id = cr.creative_id
+        JOIN dim_platform  p ON f.platform_id = p.platform_id
+        WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 90 DAY AS VARCHAR)
+        GROUP BY cr.creative_name, cr.format, p.platform_name
+        HAVING early_ctr IS NOT NULL AND recent_ctr IS NOT NULL
+           AND COUNT(DISTINCT f.date) >= 30
+        ORDER BY (recent_ctr - early_ctr) ASC
+        LIMIT 15
+    """)
+    if len(fatigue_df) > 0 and "error" not in fatigue_df.columns:
+        fatigue_df["ctr_drop_pct"] = (
+            (fatigue_df["recent_ctr"] - fatigue_df["early_ctr"])
+            / fatigue_df["early_ctr"].replace(0, 0.001) * 100
+        ).round(1)
+        fatigue_df["status"] = fatigue_df["ctr_drop_pct"].apply(
+            lambda x: "URGENT" if x < -20 else ("MONITOR" if x < -10 else "HEALTHY"))
+        disp = fatigue_df[["creative_name","format","platform","days_running",
+                            "early_ctr","recent_ctr","ctr_drop_pct","status","total_spend"]].copy()
+        disp.columns = ["Creative","Format","Platform","Days Live",
+                        "Early CTR%","Recent CTR%","CTR Drop%","Status","Spend SGD"]
+        disp["Spend SGD"] = disp["Spend SGD"].apply(lambda x: f"{int(x):,}")
         st.dataframe(disp, use_container_width=True, hide_index=True)
 
+        urgent = fatigue_df[fatigue_df["ctr_drop_pct"] < -20]
+        if len(urgent) > 0:
+            st.warning(f"{len(urgent)} creative(s) need urgent refresh — CTR has dropped >20% from early performance. Recommend replacing within 7 days.")
 
-# ══════════════════════════════════════════════════════
-# TAB 3 — CREATIVE HEALTH
-# ══════════════════════════════════════════════════════
-with tab_creative:
-    st.subheader("🎨 Creative Health Dashboard")
-
-    # — Format Performance —
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("#### 📋 ROAS by Creative Format")
-        if len(by_format) > 0:
-            fig_fmt = px.bar(
-                by_format.sort_values("avg_roas", ascending=True),
-                x="avg_roas", y="format", orientation="h",
-                color="avg_roas",
-                color_continuous_scale=["#FF4444", "#FFB800", "#00C48C"],
-                text=by_format.sort_values("avg_roas", ascending=True)["avg_roas"].apply(
-                    lambda x: f"{{x:.2f}}x"
-                ),
-            )
-            fig_fmt.update_traces(textposition="outside")
-            fig_fmt.update_layout(
-                plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-                font=dict(color="white"), height=320,
-                margin=dict(t=10, b=10, l=10, r=40),
-                coloraxis_showscale=False,
-                xaxis=dict(gridcolor="#222"),
-            )
-            st.plotly_chart(fig_fmt, use_container_width=True)
-
-    with col2:
-        st.markdown("#### 💰 Spend Distribution by Format")
-        if len(by_format) > 0:
-            fig_spend = px.pie(
-                by_format, values="spend", names="format",
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Set2,
-            )
-            fig_spend.update_layout(
-                plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-                font=dict(color="white"), height=320,
-                margin=dict(t=10, b=10),
-                legend=dict(bgcolor="#1a1a1a"),
-            )
-            st.plotly_chart(fig_spend, use_container_width=True)
-
-    if len(by_format) > 0:
-        df_fmt_disp = by_format.copy()
-        df_fmt_disp["spend_fmt"]  = df_fmt_disp["spend"].apply(lambda x: f"SGD {{x:,.0f}}")
-        df_fmt_disp["roas_fmt"]   = df_fmt_disp["avg_roas"].apply(lambda x: f"{{x:.2f}}x")
-        df_fmt_disp["ctr_fmt"]    = df_fmt_disp["avg_ctr"].apply(lambda x: f"{{x:.2f}}%")
-        disp_fmt = df_fmt_disp[["format", "creatives", "spend_fmt", "roas_fmt", "ctr_fmt", "conversions"]]
-        disp_fmt.columns = ["Format", "# Creatives", "Total Spend", "Avg ROAS", "Avg CTR", "Conversions"]
-        st.dataframe(disp_fmt, use_container_width=True, hide_index=True)
-
-    st.divider()
-
-    # — Creative Fatigue —
-    st.markdown("#### ⚠️ Creative Fatigue Alerts")
-    st.markdown(
-        "<p style='color:#888; font-size:12px;'>Creatives where CTR dropped >20% "
-        "from early period (days 0–30) to late period (days 60+)</p>",
-        unsafe_allow_html=True,
-    )
-
-    if len(fatigue) > 0:
-        df_f = fatigue.copy()
-        df_f["ctr_drop_pct"] = (
-            (df_f["early_ctr"] - df_f["late_ctr"]) / df_f["early_ctr"] * 100
-        ).round(1)
-
-        fig_fat = go.Figure()
-        x_labels = df_f["format"] + " | " + df_f["business_line"]
-        fig_fat.add_trace(go.Bar(
-            name="Early CTR (days 0–30)", x=x_labels, y=df_f["early_ctr"],
-            marker_color=GOOD,
+    st.markdown('<div class="sec">CTR by Platform x Format</div>', unsafe_allow_html=True)
+    heat_df = run_query("""
+        SELECT p.platform_name AS platform, cr.format,
+               ROUND(AVG(f.ctr)*100,2) AS avg_ctr
+        FROM fact_performance f
+        JOIN dim_creative cr ON f.creative_id = cr.creative_id
+        JOIN dim_platform  p ON f.platform_id = p.platform_id
+        WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)
+        GROUP BY p.platform_name, cr.format
+    """)
+    if len(heat_df) > 0 and "error" not in heat_df.columns:
+        pivot = heat_df.pivot(index="platform", columns="format", values="avg_ctr").fillna(0)
+        fig = go.Figure(go.Heatmap(
+            z=pivot.values, x=pivot.columns.tolist(), y=pivot.index.tolist(),
+            colorscale=[[0, "#EEF2FF"],[0.5, "#3B5BDB"],[1, "#1428A0"]],
+            text=[[f"{v:.2f}%" for v in row] for row in pivot.values],
+            texttemplate="%{text}", textfont_size=11, showscale=True,
         ))
-        fig_fat.add_trace(go.Bar(
-            name="Late CTR (days 60+)", x=x_labels, y=df_f["late_ctr"],
-            marker_color=BAD,
-            text=df_f["ctr_drop_pct"].apply(lambda x: f"-{{x:.0f}}%"),
-            textposition="outside",
-        ))
-        fig_fat.update_layout(
-            barmode="group", plot_bgcolor="#0D0D0D", paper_bgcolor="#111",
-            font=dict(color="white"), height=320,
-            margin=dict(t=10, b=10), legend=dict(bgcolor="#1a1a1a"),
-            yaxis=dict(title="CTR %", gridcolor="#222"),
-            xaxis=dict(tickangle=-20),
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", font_color=TEXT,
+            height=220, margin=dict(l=0,r=0,t=0,b=0),
         )
-        st.plotly_chart(fig_fat, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-        df_f_disp = df_f[["creative_name","format","business_line",
-                           "early_ctr","late_ctr","ctr_drop_pct","spend"]].copy()
-        df_f_disp.columns = ["Creative","Format","Business Line",
-                              "Early CTR","Late CTR","Drop %","Spend (SGD)"]
-        df_f_disp["Spend (SGD)"] = df_f_disp["Spend (SGD)"].apply(lambda x: f"{{x:,.0f}}")
-        st.dataframe(df_f_disp, use_container_width=True, hide_index=True)
-    else:
-        st.success("✅ No significant creative fatigue detected in this period.")
-
-    st.divider()
-
-    # — Top Performing Creatives —
-    st.markdown("#### 🏆 Top Creatives by ROAS")
-    if len(top_creatives) > 0:
-        df_tc = top_creatives.copy()
-        df_tc["spend_fmt"] = df_tc["spend"].apply(lambda x: f"SGD {{x:,.0f}}")
-        df_tc["roas_fmt"]  = df_tc["roas"].apply(lambda x: f"{{x:.2f}}x")
-        df_tc["ctr_fmt"]   = df_tc["avg_ctr"].apply(lambda x: f"{{x:.2f}}%")
-        disp_tc = df_tc[["creative_name","format","business_line",
-                          "spend_fmt","roas_fmt","ctr_fmt","conversions"]]
-        disp_tc.columns = ["Creative","Format","Business Line","Spend","ROAS","CTR","Conversions"]
-        st.dataframe(disp_tc, use_container_width=True, hide_index=True)
-
-
-# ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 # TAB 4 — DATA EXPLORER
-# ══════════════════════════════════════════════════════
-with tab_data:
-    st.subheader("🔍 Data Explorer")
-    st.markdown(
-        "<p style='color:#888; font-size:13px;'>Query the DuckDB marketing analytics database directly. "
-        "Select a preset or write your own SQL.</p>",
-        unsafe_allow_html=True,
-    )
+# ══════════════════════════════════════════════════════════════
+with tab4:
+    st.markdown('<div class="sec">SQL Query on Live Data</div>', unsafe_allow_html=True)
 
-    SAMPLE_QUERIES = {{
-        "Business Line KPIs (this month)": """SELECT
-    business_line,
-    ROUND(SUM(spend), 0)  AS total_spend_sgd,
-    ROUND(SUM(revenue), 0) AS total_revenue_sgd,
-    ROUND(SUM(revenue)/SUM(spend), 2) AS roas,
-    SUM(conversions) AS conversions
-FROM fact_daily_performance
-WHERE date LIKE '2026-03-%'
-GROUP BY business_line
-ORDER BY total_spend_sgd DESC;""",
+    EXAMPLES = {
+        "Spend & ROAS by Platform":
+            "SELECT p.platform_name, ROUND(SUM(f.spend),0) AS spend,\n"
+            "       ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS roas\n"
+            "FROM fact_performance f\n"
+            "JOIN dim_platform p ON f.platform_id = p.platform_id\n"
+            "WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)\n"
+            "GROUP BY p.platform_name ORDER BY roas DESC",
 
-        "Platform Daily Trend (last 7 days)": """SELECT
-    f.date,
-    p.platform_name,
-    ROUND(SUM(f.spend), 0) AS spend_sgd,
-    ROUND(SUM(f.revenue)/SUM(f.spend), 2) AS roas
-FROM fact_daily_performance f
-JOIN dim_platform p ON f.platform_id = p.platform_id
-WHERE f.date >= '2026-03-08'
-GROUP BY f.date, p.platform_name
-ORDER BY f.date, spend_sgd DESC;""",
+        "Creative Format CTR":
+            "SELECT cr.format, ROUND(AVG(f.ctr)*100,2) AS avg_ctr,\n"
+            "       COUNT(DISTINCT cr.creative_id) AS num_creatives\n"
+            "FROM fact_performance f\n"
+            "JOIN dim_creative cr ON f.creative_id = cr.creative_id\n"
+            "WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)\n"
+            "GROUP BY cr.format ORDER BY avg_ctr DESC",
 
-        "Top Campaigns by ROAS": """SELECT
-    c.campaign_name,
-    f.business_line,
-    ROUND(SUM(f.spend), 0)  AS spend,
-    ROUND(SUM(f.revenue)/SUM(f.spend), 2) AS roas,
-    MAX(c.roas_target) AS target
-FROM fact_daily_performance f
-JOIN dim_campaign c ON f.campaign_id = c.campaign_id
-WHERE f.date >= '2026-02-13'
-GROUP BY c.campaign_name, f.business_line
-ORDER BY roas DESC LIMIT 10;""",
+        "Business Line ROAS":
+            "SELECT bl.business_line_name,\n"
+            "       ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS actual_roas\n"
+            "FROM fact_performance f\n"
+            "JOIN dim_business_line bl ON f.business_line_id = bl.business_line_id\n"
+            "WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)\n"
+            "GROUP BY bl.business_line_name ORDER BY actual_roas DESC",
 
-        "Creative Format Analysis": """SELECT
-    cr.format,
-    COUNT(DISTINCT cr.creative_id) AS creatives,
-    ROUND(AVG(f.ctr), 3)  AS avg_ctr,
-    ROUND(AVG(f.roas), 2) AS avg_roas,
-    SUM(f.conversions)    AS total_conversions
-FROM fact_daily_performance f
-JOIN dim_creative cr ON f.creative_id = cr.creative_id
-WHERE f.date >= '2026-02-13'
-GROUP BY cr.format
-ORDER BY avg_roas DESC;""",
+        "Top Campaigns by Spend":
+            "SELECT c.campaign_name, ROUND(SUM(f.spend),0) AS spend,\n"
+            "       ROUND(SUM(f.revenue)/NULLIF(SUM(f.spend),0),2) AS roas\n"
+            "FROM fact_performance f\n"
+            "JOIN dim_campaign c ON f.campaign_id = c.campaign_id\n"
+            "WHERE f.date >= CAST(CURRENT_DATE - INTERVAL 30 DAY AS VARCHAR)\n"
+            "GROUP BY c.campaign_name ORDER BY spend DESC LIMIT 20",
 
-        "Creative Fatigue Detection": """SELECT
-    cr.creative_name, cr.format, f.business_line,
-    ROUND(AVG(CASE WHEN f.day_num < 30 THEN f.ctr END), 3) AS early_ctr,
-    ROUND(AVG(CASE WHEN f.day_num >= 60 THEN f.ctr END), 3) AS late_ctr,
-    ROUND(SUM(f.spend), 0) AS spend
-FROM fact_daily_performance f
-JOIN dim_creative cr ON f.creative_id = cr.creative_id
-GROUP BY cr.creative_name, cr.format, f.business_line
-HAVING early_ctr IS NOT NULL AND late_ctr IS NOT NULL
-   AND late_ctr < early_ctr * 0.80
-ORDER BY (late_ctr - early_ctr) ASC LIMIT 15;""",
+        "Daily Trend Last 14 Days":
+            "SELECT date, ROUND(SUM(spend),0) AS spend,\n"
+            "       ROUND(SUM(revenue)/NULLIF(SUM(spend),0),2) AS roas\n"
+            "FROM fact_performance\n"
+            "WHERE date >= CAST(CURRENT_DATE - INTERVAL 14 DAY AS VARCHAR)\n"
+            "GROUP BY date ORDER BY date DESC",
+    }
 
-        "Platform CPM & Efficiency": """SELECT
-    p.platform_name,
-    ROUND(AVG(f.cpm), 2)  AS avg_cpm_sgd,
-    ROUND(AVG(f.ctr), 3)  AS avg_ctr_pct,
-    ROUND(AVG(f.roas), 2) AS avg_roas,
-    SUM(f.conversions)    AS total_conversions
-FROM fact_daily_performance f
-JOIN dim_platform p ON f.platform_id = p.platform_id
-WHERE f.date >= '2026-02-13'
-GROUP BY p.platform_name
-ORDER BY avg_roas DESC;""",
-    }}
+    ex_choice = st.selectbox("Load example", ["Write your own"] + list(EXAMPLES.keys()))
+    default   = EXAMPLES.get(ex_choice, "") if ex_choice != "Write your own" else ""
+    sql_in    = st.text_area("SQL", value=default, height=150,
+                              placeholder="SELECT ... FROM fact_performance WHERE ...")
 
-    preset = st.selectbox(
-        "📋 Load a preset query:",
-        ["(write your own…)"] + list(SAMPLE_QUERIES.keys()),
-    )
-    default_sql = SAMPLE_QUERIES.get(preset, "SELECT * FROM fact_daily_performance LIMIT 20;")
+    if st.button("Run Query"):
+        if sql_in.strip():
+            with st.spinner("Running..."):
+                res = run_query(sql_in.strip())
+            if "error" in res.columns:
+                st.error(f"Error: {res['error'].iloc[0]}")
+            elif len(res) > 0:
+                st.success(f"{len(res)} rows returned")
+                st.dataframe(res, use_container_width=True, hide_index=True)
+                st.download_button("Download CSV",
+                                   res.to_csv(index=False).encode("utf-8"),
+                                   "result.csv", "text/csv")
+            else:
+                st.info("No rows returned.")
 
-    sql_input = st.text_area("SQL Query:", value=default_sql, height=160,
-                             placeholder="SELECT … FROM fact_daily_performance …")
-
-    run_col, _ = st.columns([1, 5])
-    with run_col:
-        run_btn = st.button("▶️  Run Query", type="primary", use_container_width=True)
-
-    if run_btn:
-        try:
-            con       = duckdb.connect(DB_PATH, read_only=True)
-            result_df = con.execute(sql_input).df()
-            con.close()
-            st.success(f"✅ {{len(result_df)}} rows returned")
-            st.dataframe(result_df, use_container_width=True, height=420)
-            csv = result_df.to_csv(index=False)
-            st.download_button(
-                "⬇️  Download CSV",
-                data=csv,
-                file_name="wb_analytics_export.csv",
-                mime="text/csv",
-            )
-        except Exception as e:
-            st.error(f"❌ SQL Error: {{e}}")
-
-    st.divider()
-    st.markdown("#### 📚 Schema Reference")
-
-    SCHEMA = {{
-        "fact_daily_performance (112K rows)":
-            "Main fact table — date, campaign_id, ad_set_id, creative_id, platform_id, "
-            "business_line, objective, impressions, clicks, conversions, spend (SGD), "
-            "revenue (SGD), roas, cpm, ctr, cvr, frequency, day_num",
-        "dim_campaign":
-            "campaign_name, business_line, objective, platform_id, roas_target, daily_budget, status",
-        "dim_platform":
-            "platform_id (1=Meta, 2=Google, 3=TikTok, 4=YouTube), platform_name, platform_type, avg_cpm_baseline",
-        "dim_creative":
-            "creative_name, format (Video 15s/30s, Static Image, Carousel, Story, Reel, YouTube Pre-roll), "
-            "style, business_line, is_video",
-        "dim_ad_set":
-            "ad_set_name, audience_type, age_range, gender, daily_budget",
-    }}
-
-    for tbl, desc in SCHEMA.items():
-        with st.expander(f"📋  {{tbl}}"):
-            st.markdown(f"**{{desc}}**")
-            try:
-                con    = duckdb.connect(DB_PATH, read_only=True)
-                sample = con.execute(f"SELECT * FROM {{tbl.split()[0]}} LIMIT 3").df()
-                con.close()
-                st.dataframe(sample, use_container_width=True, hide_index=True)
-            except Exception:
-                pass
-
-
-# ── Footer ────────────────────────────────────────────
-st.divider()
-st.markdown("""
-<p style="text-align:center; color:#555; font-size:11px;">
-🎬 Warner Bros. Singapore &nbsp;|&nbsp; Marketing Analytics Agent &nbsp;|&nbsp;
-Streamlit + Plotly + DuckDB &nbsp;|&nbsp; Powered by Claude AI
-</p>
-""", unsafe_allow_html=True)
+    st.markdown('<div class="sec">Schema Reference</div>', unsafe_allow_html=True)
+    s1, s2, s3 = st.columns(3)
+    schema = {
+        "fact_performance": ["date","campaign_id","platform_id","business_line_id",
+                             "creative_id","spend","revenue","impressions",
+                             "clicks","conversions","ctr","cpm","cpc"],
+        "dim_campaign":     ["campaign_id (PK)","campaign_name","campaign_type",
+                             "objective","business_line_id"],
+        "dim_platform":     ["platform_id (PK)","platform_name"],
+        "dim_business_line":["business_line_id (PK)","business_line_name"],
+        "dim_creative":     ["creative_id (PK)","creative_name","format",
+                             "platform_id","business_line_id"],
+    }
+    for i, (tbl, cols) in enumerate(schema.items()):
+        with [s1, s2, s3][i % 3]:
+            rows = "".join(
+                f'<div style="color:#64748B;font-size:11px;font-family:monospace;'
+                f'padding:1px 0;">{c}</div>' for c in cols)
+            st.markdown(
+                f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
+                f'border-radius:6px;padding:12px;margin-bottom:10px;">'
+                f'<div style="color:#1428A0;font-size:12px;font-weight:700;'
+                f'margin-bottom:6px;">{tbl}</div>{rows}</div>',
+                unsafe_allow_html=True)
 '''
 
     with open(DASHBOARD_OUT, "w") as f:
@@ -943,17 +838,18 @@ Streamlit + Plotly + DuckDB &nbsp;|&nbsp; Powered by Claude AI
     return DASHBOARD_OUT
 
 
-def launch_dashboard(path: str) -> subprocess.Popen:
-    """Launch Streamlit in background, return process."""
+def launch_dashboard(path: str) -> None:
+    """Launch the Streamlit dashboard."""
     streamlit_bin = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "../venv/bin/streamlit"
     )
-    proc = subprocess.Popen(
+    if not os.path.exists(streamlit_bin):
+        streamlit_bin = "streamlit"
+
+    subprocess.Popen(
         [streamlit_bin, "run", path,
-         "--server.port", "8501",
-         "--server.headless", "false",
-         "--browser.gatherUsageStats", "false"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+         "--server.port=8501",
+         "--server.headless=false",
+         "--browser.gatherUsageStats=false"],
+        cwd=os.path.dirname(path),
     )
-    return proc
