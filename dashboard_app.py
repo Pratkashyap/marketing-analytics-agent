@@ -87,31 +87,48 @@ section[data-testid="stSidebar"] { background:#fff; border-right:1px solid #E2E8
     padding:12px 16px; color:#713F12; font-size:13px; margin:8px 0;
 }
 
-/* Sidebar quick query buttons — white bg, dark text, never black */
-section[data-testid="stSidebar"] .stButton > button {
+/* ── ALL secondary buttons (sidebar + main area) ─────────────
+   Covers: category buttons, sub-question buttons, Clear button,
+   Run Query button. Never shows black bg or invisible text.    */
+.stButton > button {
     background:#F1F5F9 !important;
     color:#0F172A !important;
-    border:1px solid #E2E8F0 !important;
+    border:1px solid #CBD5E1 !important;
     border-radius:6px !important;
     font-size:13px !important;
     font-weight:500 !important;
+}
+.stButton > button:hover,
+.stButton > button:focus,
+.stButton > button:active {
+    background:#E0E7FF !important;
+    color:#003087 !important;
+    border-color:#A5B4FC !important;
+    box-shadow:none !important;
+}
+
+/* ── Primary button (Send to Agent Team) — keep blue ─────── */
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background:#003087 !important;
+    color:#ffffff !important;
+    border:none !important;
+}
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background:#00236B !important;
+    color:#ffffff !important;
+    border:none !important;
+}
+
+/* ── Sidebar category buttons — full width, left-aligned ─── */
+section[data-testid="stSidebar"] .stButton > button {
     text-align:left !important;
     width:100% !important;
     padding:8px 12px !important;
 }
-section[data-testid="stSidebar"] .stButton > button:hover {
-    background:#E0E7FF !important;
-    color:#003087 !important;
-    border-color:#A5B4FC !important;
-}
-section[data-testid="stSidebar"] .stButton > button:focus,
-section[data-testid="stSidebar"] .stButton > button:active {
-    background:#E0E7FF !important;
-    color:#003087 !important;
-    border-color:#A5B4FC !important;
-}
 
-/* Text area — white background, dark text */
+/* ── Text area — always white bg, dark text ──────────────── */
 .stTextArea textarea {
     background:#ffffff !important;
     color:#0F172A !important;
@@ -121,6 +138,10 @@ section[data-testid="stSidebar"] .stButton > button:active {
 .stTextArea textarea:focus {
     border-color:#003087 !important;
     box-shadow:0 0 0 2px rgba(0,48,135,0.1) !important;
+    background:#ffffff !important;
+}
+.stTextArea textarea::placeholder {
+    color:#94A3B8 !important;
 }
 </style>
 """, unsafe_allow_html=True)
