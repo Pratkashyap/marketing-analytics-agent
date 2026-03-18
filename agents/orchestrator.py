@@ -217,9 +217,17 @@ class Orchestrator:
         # ── Step 3: Specialist Agent ──────────────────────────
         if not needs_analysis:
             emit("orchestrator", "done")
-            response_text = (data.to_string(index=False)
-                             if (data is not None and not data.empty)
-                             else "No data found.")
+            if data is not None and not data.empty:
+                # Build markdown table
+                cols = list(data.columns)
+                header = "| " + " | ".join(str(c) for c in cols) + " |"
+                sep    = "| " + " | ".join(["---"] * len(cols)) + " |"
+                rows   = ["| " + " | ".join(str(v) for v in row) + " |"
+                          for _, row in data.iterrows()]
+                md_table = "\n".join([header, sep] + rows)
+                response_text = f"**{len(data)} results found.**\n\n{md_table}"
+            else:
+                response_text = "No data found for your query."
             return {
                 "question": question, "intent": intent, "specialist": specialist,
                 "response": response_text,

@@ -70,21 +70,44 @@ section[data-testid="stSidebar"] { background:#fff; border-right:1px solid #E2E8
 .ps { border-left:2px solid #C7D2FE; padding:4px 8px; margin:2px 0;
       font-size:11px; color:#64748B; font-family:monospace; background:#F8F9FC;
       border-radius:0 4px 4px 0; }
-.pd { border-left-color:#16A34A !important; color:#16A34A !important; }
+.pd { border-left-color:#16A34A !important; color:#16A34A !important; background:#F0FDF4 !important; }
+.pr { border-left:2px solid #F59E0B; padding:4px 8px; margin:2px 0;
+      font-size:11px; color:#92400E; font-family:monospace; background:#FFFBEB;
+      border-radius:0 4px 4px 0; font-weight:600; }
 .timer-total {
     background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;
     padding:8px 12px; font-size:12px; font-weight:700; color:#16A34A;
     margin:8px 0 4px; text-align:center;
 }
+.timer-running {
+    background:#FEF9C3; border:1px solid #FDE047; border-radius:6px;
+    padding:8px 12px; font-size:12px; font-weight:700; color:#92400E;
+    margin:8px 0 4px; text-align:center; animation: pulse 1.5s infinite;
+}
+.agent-active {
+    background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px;
+    padding:6px 10px; font-size:11px; font-weight:700; color:#1D4ED8;
+    margin:4px 0; text-align:center;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
 .apill {
     display:inline-block; background:#EEF2FF; border:1px solid #C7D2FE;
     border-radius:12px; padding:2px 10px; font-size:11px;
     color:#003087; font-weight:600; margin:2px 0; line-height:1.8;
 }
-/* Waiting banner */
-.wait-banner {
-    background:#FEF9C3; border:1px solid #FDE047; border-radius:8px;
-    padding:12px 16px; color:#713F12; font-size:13px; margin:8px 0;
+/* Chat bubbles — agent response uses st.markdown so no inline body */
+.chat-agent-hdr {
+    background:#F8FAFC; border:1px solid #E2E8F0;
+    border-radius:12px 12px 0 0; border-bottom:none;
+    padding:8px 14px 4px; margin:6px 0 0;
+    color:#64748B; font-size:12px; font-weight:700;
+}
+/* The st.container that holds agent markdown */
+.chat-agent-hdr + div > div {
+    border:1px solid #E2E8F0; border-top:none;
+    border-radius:0 0 12px 12px;
+    padding:8px 14px 12px; background:#fff;
+    font-size:14px; line-height:1.6; color:#0F172A;
 }
 
 /* ── ALL secondary buttons (sidebar + main area) ─────────────
@@ -296,25 +319,59 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # ══════════════════════════════════════════════════════════════
 # TAB 1 — AGENT CHAT
 # ══════════════════════════════════════════════════════════════
+_AGENT_MAP = {
+    "orchestrator":    "Orchestrator",
+    "data_agent":      "Data Agent",
+    "analysis_agent":  "Analysis Hub",
+    "creative_analyst":"Creative Analyst",
+    "optimizer":       "Optimizer",
+    "critic":          "Quality Critic",
+}
+
 with tab1:
     left, right = st.columns([3, 1])
 
+    # ── PIPELINE PANEL — defined first so placeholders exist ──
+    with right:
+        st.markdown('<div class="sec">Pipeline</div>', unsafe_allow_html=True)
+        pipe_status_ph = st.empty()   # live timer / done banner
+        pipe_agent_ph  = st.empty()   # currently active agent
+        pipe_steps_ph  = st.empty()   # step-by-step log
+
+        # Render saved pipeline state (after a completed run)
+        if st.session_state["total_time"] and not st.session_state.get("_running"):
+            with pipe_status_ph.container():
+                st.markdown(
+                    f'<div class="timer-total">✅ Complete — '
+                    f'{st.session_state["total_time"]:.1f}s</div>',
+                    unsafe_allow_html=True)
+            with pipe_steps_ph.container():
+                for step in st.session_state.pipeline_log:
+                    cls = "pd" if "done" in step.lower() else "ps"
+                    st.markdown(f'<div class="{cls}">{step}</div>',
+                                unsafe_allow_html=True)
+        elif not st.session_state.pipeline_log:
+            with pipe_steps_ph.container():
+                st.markdown(
+                    '<div style="color:#94A3B8;font-size:12px;padding:8px 0;line-height:1.9;">'
+                    'Agent steps and timings will appear here live as they run.'
+                    '</div>', unsafe_allow_html=True)
+                for a in ["Orchestrator","Data Agent","Analysis Hub",
+                          "Creative Analyst","Optimizer","Quality Critic"]:
+                    st.markdown(f'<div class="apill">{a}</div>', unsafe_allow_html=True)
+
+    # ── LEFT: INPUT + HISTORY ─────────────────────────────────
     with left:
         st.markdown('<div class="sec">Ask your marketing analytics team</div>',
                     unsafe_allow_html=True)
 
-        # ── PRE-RENDER: handle clear / prefill flags ──────────
-        # These must run BEFORE the text_area widget is instantiated
+        # Pre-render clear / prefill — MUST be before widget
         if st.session_state["do_clear_input"]:
             st.session_state["chat_val"] = ""
             st.session_state["do_clear_input"] = False
         elif st.session_state["prefill_text"]:
             st.session_state["chat_val"] = st.session_state.pop("prefill_text")
 
-        # ── TEXT INPUT — key only, NO value= param ────────────
-        # Using key= means Streamlit stores what the user types in
-        # st.session_state["chat_val"] automatically.
-        # Never pass value= here — it would override what the user typed on rerun.
         user_q = st.text_area(
             "question",
             placeholder="Type your question here, or pick a topic from the sidebar...",
@@ -323,46 +380,40 @@ with tab1:
             key="chat_val",
         )
 
-        # ── BUTTONS ───────────────────────────────────────────
         b1, b2 = st.columns([5, 1])
         with b1:
             send_btn  = st.button("Send to Agent Team", key="send_btn",
                                   type="primary", width="stretch")
         with b2:
-            clear_btn = st.button("Clear", key="clear_btn",
-                                  width="stretch")
+            clear_btn = st.button("Clear", key="clear_btn", width="stretch")
 
         if clear_btn:
-            st.session_state["messages"]      = []
-            st.session_state["pipeline_log"]  = []
-            st.session_state["total_time"]    = None
-            st.session_state["do_clear_input"]= True
-            st.session_state["selected_cat"]  = ""
+            st.session_state["messages"]       = []
+            st.session_state["pipeline_log"]   = []
+            st.session_state["total_time"]     = None
+            st.session_state["do_clear_input"] = True
+            st.session_state["selected_cat"]   = ""
             st.rerun()
 
-        # ── SUB-QUESTION PANEL (below buttons) ────────────────
+        # ── SUB-QUESTION PANEL ────────────────────────────────
         cat = st.session_state["selected_cat"]
         if cat and cat in QUICK_QUERIES:
-            questions = QUICK_QUERIES[cat]
             st.markdown(
                 f'<div style="background:#F0F4FF;border:1px solid #C7D2FE;'
                 f'border-radius:8px;padding:12px 14px;margin:10px 0 4px;">'
                 f'<div style="font-size:12px;font-weight:700;color:#003087;'
                 f'margin-bottom:8px;">{cat} — choose a question:</div>',
                 unsafe_allow_html=True)
-
-            for qi, q in enumerate(questions):
+            for qi, q in enumerate(QUICK_QUERIES[cat]):
                 short = q[:90] + "..." if len(q) > 90 else q
                 if st.button(f"  {short}", key=f"subq_{qi}"):
-                    # Populate text area + auto-run
                     st.session_state["prefill_text"] = q
                     st.session_state["run_now"]      = q
                     st.session_state["selected_cat"] = ""
                     st.rerun()
-
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── DETERMINE QUERY TO RUN ────────────────────────────
+        # ── DETERMINE QUERY ───────────────────────────────────
         query_to_run = ""
         if send_btn:
             typed = st.session_state.get("chat_val", "").strip()
@@ -371,64 +422,87 @@ with tab1:
         if not query_to_run and st.session_state.get("run_now"):
             query_to_run = st.session_state.pop("run_now")
 
-        # ── RUN AGENT ─────────────────────────────────────────
+        # ── RUN AGENT WITH LIVE PIPELINE ──────────────────────
         if query_to_run:
-            # Show wait indicator
-            st.markdown(
-                '<div class="wait-banner">'
-                '⏱  Agent team is analysing your question — '
-                'estimated <b>20–35 seconds</b>. '
-                'Watch the Pipeline panel on the right to see each agent as it works.'
-                '</div>',
-                unsafe_allow_html=True)
-
             steps        = []
             agent_starts = {}
+            current      = {"lbl": None, "start": None}
+            t0           = time.time()
 
-            with st.spinner("Agents working..."):
-                t0 = time.time()
-                try:
-                    from agents.orchestrator import Orchestrator
+            def _render_pipeline():
+                elapsed = time.time() - t0
+                with pipe_status_ph.container():
+                    st.markdown(
+                        f'<div class="timer-running">⏱ Running... {elapsed:.1f}s</div>',
+                        unsafe_allow_html=True)
+                with pipe_agent_ph.container():
+                    if current["lbl"]:
+                        a_elapsed = time.time() - (current["start"] or t0)
+                        st.markdown(
+                            f'<div class="agent-active">'
+                            f'▶ {current["lbl"]} — {a_elapsed:.1f}s</div>',
+                            unsafe_allow_html=True)
+                with pipe_steps_ph.container():
+                    for step in steps:
+                        cls = "pd" if " done" in step else ("pr" if "starting" in step else "ps")
+                        st.markdown(f'<div class="{cls}">{step}</div>',
+                                    unsafe_allow_html=True)
 
-                    def on_status(agent, event, detail=""):
-                        now = time.time()
-                        _map = {
-                            "orchestrator":    "Orchestrator",
-                            "data_agent":      "Data Agent",
-                            "analysis_agent":  "Analysis Hub",
-                            "creative_analyst":"Creative Analyst",
-                            "optimizer":       "Optimizer",
-                            "critic":          "Quality Critic",
-                        }
-                        lbl = _map.get(agent, agent.replace("_"," ").title())
-                        if event == "start":
-                            agent_starts[agent] = now
-                            steps.append(f"{lbl}  ·  starting...")
-                        elif event == "done":
-                            dur = now - agent_starts.get(agent, now)
-                            steps.append(f"{lbl}  ·  done  [{dur:.1f}s]")
-                        else:
-                            steps.append(f"{lbl}  ·  {event}")
+            def on_status(agent, event, detail=""):
+                now = time.time()
+                lbl = _AGENT_MAP.get(agent, agent.replace("_"," ").title())
+                if event == "start":
+                    agent_starts[agent] = now
+                    current["lbl"]   = lbl
+                    current["start"] = now
+                    steps.append(f"{lbl} · starting...")
+                elif event == "done":
+                    dur = now - agent_starts.get(agent, now)
+                    # Replace "starting..." line with done
+                    for idx, s in enumerate(steps):
+                        if s == f"{lbl} · starting...":
+                            steps[idx] = f"{lbl} · done [{dur:.1f}s]"
+                            break
+                    if current["lbl"] == lbl:
+                        current["lbl"] = None
+                else:
+                    steps.append(f"{lbl} · {event}")
+                _render_pipeline()
 
-                    result   = Orchestrator().run(
-                                   query_to_run, verbose=False, on_status=on_status)
-                    response = (result.get("response")
-                                or result.get("analysis")
-                                or result.get("data_summary")
-                                or "No response from agent.")
-                except Exception as e:
-                    response = f"Agent error: {e}"
+            # Initial pipeline display
+            _render_pipeline()
 
-                total = time.time() - t0
+            try:
+                from agents.orchestrator import Orchestrator
+                result   = Orchestrator().run(
+                               query_to_run, verbose=False, on_status=on_status)
+                response = (result.get("response")
+                            or result.get("analysis")
+                            or result.get("data_summary")
+                            or "No response from agent.")
+            except Exception as e:
+                response = f"**Agent error:** {e}"
 
-            # Save results & clear input
-            st.session_state["messages"].append(
-                {"role": "user", "content": query_to_run})
-            st.session_state["messages"].append(
-                {"role": "assistant", "content": response})
-            st.session_state["pipeline_log"] = steps
-            st.session_state["total_time"]   = total
-            st.session_state["do_clear_input"] = True  # clear on next render
+            total = time.time() - t0
+
+            # Final pipeline state
+            with pipe_status_ph.container():
+                st.markdown(
+                    f'<div class="timer-total">✅ Complete — {total:.1f}s</div>',
+                    unsafe_allow_html=True)
+            pipe_agent_ph.empty()
+            with pipe_steps_ph.container():
+                for step in steps:
+                    cls = "pd" if " done" in step else "ps"
+                    st.markdown(f'<div class="{cls}">{step}</div>',
+                                unsafe_allow_html=True)
+
+            # Save + rerun
+            st.session_state["messages"].append({"role":"user","content":query_to_run})
+            st.session_state["messages"].append({"role":"assistant","content":response})
+            st.session_state["pipeline_log"]   = steps
+            st.session_state["total_time"]     = total
+            st.session_state["do_clear_input"] = True
             st.rerun()
 
         # ── DIVIDER ───────────────────────────────────────────
@@ -436,17 +510,14 @@ with tab1:
             '<hr style="border:none;border-top:1px solid #E2E8F0;margin:14px 0 8px;">',
             unsafe_allow_html=True)
 
-        # ── CONVERSATION HISTORY (latest first) ───────────────
+        # ── CONVERSATION HISTORY ──────────────────────────────
         if not st.session_state.messages:
             st.markdown(
                 '<div style="color:#94A3B8;font-size:13px;padding:20px 0;text-align:center;">'
-                'No messages yet — type a question above, or click a sidebar topic '
-                'and choose one of the suggested questions.'
-                '</div>',
-                unsafe_allow_html=True)
+                'No messages yet — type a question above, or pick a topic from the sidebar.'
+                '</div>', unsafe_allow_html=True)
         else:
-            # Pair up messages and show latest pair first
-            msgs = st.session_state.messages
+            msgs  = st.session_state.messages
             pairs = []
             i = 0
             while i < len(msgs) - 1:
@@ -456,36 +527,15 @@ with tab1:
                 else:
                     i += 1
             for u_msg, a_msg in reversed(pairs):
-                body = a_msg["content"].replace("\n","<br>")
+                # User bubble — HTML
                 st.markdown(
-                    f'<div class="chat-user"><b>You</b><br>{u_msg["content"]}</div>'
-                    f'<div class="chat-agent"><b>Agent Team</b><br>{body}</div>',
+                    f'<div class="chat-user"><b>You</b><br>{u_msg["content"]}</div>',
                     unsafe_allow_html=True)
-
-    # ── PIPELINE PANEL ────────────────────────────────────────
-    with right:
-        st.markdown('<div class="sec">Pipeline</div>', unsafe_allow_html=True)
-
-        if st.session_state["total_time"]:
-            st.markdown(
-                f'<div class="timer-total">Total: '
-                f'{st.session_state["total_time"]:.1f}s</div>',
-                unsafe_allow_html=True)
-
-        if st.session_state.pipeline_log:
-            for step in st.session_state.pipeline_log:
-                cls = "pd" if "done" in step.lower() else "ps"
-                st.markdown(f'<div class="{cls}">{step}</div>',
+                # Agent response — render as markdown so tables/bullets/bold work
+                st.markdown('<div class="chat-agent-hdr"><b>Agent Team</b></div>',
                             unsafe_allow_html=True)
-        else:
-            st.markdown(
-                '<div style="color:#94A3B8;font-size:12px;padding:10px 0;line-height:1.8;">'
-                'Agent steps and timings appear here after you run a query.'
-                '</div>',
-                unsafe_allow_html=True)
-            for a in ["Orchestrator","Data Agent","Analysis Hub",
-                      "Creative Analyst","Optimizer","Quality Critic"]:
-                st.markdown(f'<div class="apill">{a}</div>', unsafe_allow_html=True)
+                with st.container(border=False):
+                    st.markdown(a_msg["content"])
 
 
 # ══════════════════════════════════════════════════════════════
