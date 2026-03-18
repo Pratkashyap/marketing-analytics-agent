@@ -270,10 +270,10 @@ with tab1:
         b1, b2 = st.columns([5, 1])
         with b1:
             send_btn  = st.button("Send to Agent Team", key="send_btn",
-                                  type="primary", use_container_width=True)
+                                  type="primary", width="stretch")
         with b2:
             clear_btn = st.button("Clear", key="clear_btn",
-                                  use_container_width=True)
+                                  width="stretch")
 
         if clear_btn:
             st.session_state["messages"]      = []
@@ -503,7 +503,7 @@ with tab2:
                             color=GOLD, gridcolor="rgba(0,0,0,0)"),
                 xaxis=dict(gridcolor=BORDER),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     with cb:
         st.markdown('<div class="sec">Spend by Platform</div>', unsafe_allow_html=True)
@@ -525,7 +525,7 @@ with tab2:
                 margin=dict(l=0,r=0,t=0,b=0), font_color=TEXT,
                 legend=dict(font_size=11, bgcolor="rgba(0,0,0,0)"),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     st.markdown('<div class="sec">ROAS vs Target by Business Line</div>',
                 unsafe_allow_html=True)
@@ -560,7 +560,7 @@ with tab2:
             legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)"),
             bargap=0.4,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown('<div class="sec">Top 10 Campaigns by ROAS</div>',
                 unsafe_allow_html=True)
@@ -581,7 +581,7 @@ with tab2:
         d["revenue"] = d["revenue"].apply(lambda x: f"SGD {int(x):,}")
         d["roas"]    = d["roas"].apply(lambda x: f"{x:.2f}x")
         d.columns    = ["Campaign","Business Line","Platform","Spend","Revenue","ROAS"]
-        st.dataframe(d, use_container_width=True, hide_index=True)
+        st.dataframe(d, width="stretch", hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -616,7 +616,7 @@ with tab3:
                 xaxis=dict(gridcolor=BORDER, tickangle=-15),
                 yaxis=dict(title="ROAS", gridcolor=BORDER),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     CTR_BENCH = {"Video 15s":3.0,"Video 30s":2.3,"Static Image":1.8,
                  "Carousel":2.2,"Story":2.0,"Reel":2.6,"YouTube Pre-roll":1.9}
@@ -638,7 +638,7 @@ with tab3:
                 xaxis=dict(gridcolor=BORDER, tickangle=-15),
                 yaxis=dict(title="CTR Delta (%)", gridcolor=BORDER),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     st.markdown('<div class="sec">Creative Fatigue — CTR Trend Analysis</div>',
                 unsafe_allow_html=True)
@@ -669,7 +669,7 @@ with tab3:
         d.columns = ["Creative","Format","Platform","Days Live",
                      "Early CTR%","Recent CTR%","Drop%","Status","Spend"]
         d["Spend"] = d["Spend"].apply(lambda x: f"{int(x):,}")
-        st.dataframe(d, use_container_width=True, hide_index=True)
+        st.dataframe(d, width="stretch", hide_index=True)
         n = (fat["status"] == "URGENT").sum()
         if n:
             st.warning(f"{n} creative(s) flagged URGENT — CTR dropped >20%. Refresh recommended.")
@@ -697,7 +697,7 @@ with tab3:
             paper_bgcolor="rgba(0,0,0,0)", font_color=TEXT,
             height=210, margin=dict(l=0,r=0,t=0,b=0),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -764,7 +764,7 @@ with tab4:
                 st.info("No rows returned.")
             else:
                 st.success(f"{len(res):,} rows returned")
-                st.dataframe(res, use_container_width=True, hide_index=True)
+                st.dataframe(res, width="stretch", hide_index=True)
                 st.download_button("Download CSV",
                                    res.to_csv(index=False).encode("utf-8"),
                                    "data.csv","text/csv")
