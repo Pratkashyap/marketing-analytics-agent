@@ -552,13 +552,13 @@ with tab2:
                                      line=dict(color=GOLD, width=2.5),
                                      mode="lines+markers", marker_size=3, yaxis="y2"))
             fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
                 height=280, margin=dict(l=0,r=0,t=0,b=0), font_color=TEXT,
-                legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)"),
-                yaxis=dict(title="Spend SGD", gridcolor=BORDER),
+                legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)", font_color=TEXT),
+                yaxis=dict(title="Spend SGD", gridcolor=BORDER, tickfont_color=TEXT, title_font_color=TEXT),
                 yaxis2=dict(title="ROAS", overlaying="y", side="right",
-                            color=GOLD, gridcolor="rgba(0,0,0,0)"),
-                xaxis=dict(gridcolor=BORDER),
+                            color=GOLD, gridcolor="rgba(0,0,0,0)", tickfont_color=GOLD, title_font_color=GOLD),
+                xaxis=dict(gridcolor=BORDER, tickfont_color=TEXT),
             )
             st.plotly_chart(fig, width="stretch")
 
@@ -578,9 +578,9 @@ with tab2:
                             line=dict(color=WHITE, width=2)),
             ))
             fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", height=280,
+                paper_bgcolor="#FFFFFF", height=280,
                 margin=dict(l=0,r=0,t=0,b=0), font_color=TEXT,
-                legend=dict(font_size=11, bgcolor="rgba(0,0,0,0)"),
+                legend=dict(font_size=11, bgcolor="rgba(0,0,0,0)", font_color=TEXT),
             )
             st.plotly_chart(fig, width="stretch")
 
@@ -610,11 +610,11 @@ with tab2:
                                        line=dict(width=3, color=GOLD)),
         ))
         fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
             height=260, margin=dict(l=0,r=60,t=0,b=0), font_color=TEXT,
-            xaxis=dict(title="ROAS", gridcolor=BORDER),
-            yaxis=dict(gridcolor="rgba(0,0,0,0)"),
-            legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)"),
+            xaxis=dict(title="ROAS", gridcolor=BORDER, tickfont_color=TEXT, title_font_color=TEXT),
+            yaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont_color=TEXT),
+            legend=dict(orientation="h", y=1.08, bgcolor="rgba(0,0,0,0)", font_color=TEXT),
             bargap=0.4,
         )
         st.plotly_chart(fig, width="stretch")
@@ -667,11 +667,11 @@ with tab3:
                 textposition="outside", textfont_color=TEXT,
             ))
             fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
                 height=260, margin=dict(l=0,r=0,t=30,b=0), font_color=TEXT,
-                title=dict(text="ROAS by Creative Format", font_size=13),
-                xaxis=dict(gridcolor=BORDER, tickangle=-15),
-                yaxis=dict(title="ROAS", gridcolor=BORDER),
+                title=dict(text="ROAS by Creative Format", font_size=13, font_color=TEXT),
+                xaxis=dict(gridcolor=BORDER, tickangle=-15, tickfont_color=TEXT),
+                yaxis=dict(title="ROAS", gridcolor=BORDER, tickfont_color=TEXT, title_font_color=TEXT),
             )
             st.plotly_chart(fig, width="stretch")
 
@@ -689,11 +689,11 @@ with tab3:
             ))
             fig.add_hline(y=0, line_color=GOLD, line_width=1.5)
             fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
                 height=260, margin=dict(l=0,r=0,t=30,b=0), font_color=TEXT,
-                title=dict(text="CTR vs Industry Benchmark", font_size=13),
-                xaxis=dict(gridcolor=BORDER, tickangle=-15),
-                yaxis=dict(title="CTR Delta (%)", gridcolor=BORDER),
+                title=dict(text="CTR vs Industry Benchmark", font_size=13, font_color=TEXT),
+                xaxis=dict(gridcolor=BORDER, tickangle=-15, tickfont_color=TEXT),
+                yaxis=dict(title="CTR Delta (%)", gridcolor=BORDER, tickfont_color=TEXT, title_font_color=TEXT),
             )
             st.plotly_chart(fig, width="stretch")
 
@@ -751,8 +751,10 @@ with tab3:
             texttemplate="%{text}", textfont_size=11,
         ))
         fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", font_color=TEXT,
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color=TEXT,
             height=210, margin=dict(l=0,r=0,t=0,b=0),
+            xaxis=dict(tickfont_color=TEXT),
+            yaxis=dict(tickfont_color=TEXT),
         )
         st.plotly_chart(fig, width="stretch")
 
