@@ -1,5 +1,5 @@
 """
-Marketing Analytics Dashboard — Warner Bros. Discovery Singapore
+Marketing Analytics Dashboard — Marketing Analytics Team Singapore
 """
 import os, sys, time
 import streamlit as st
@@ -14,7 +14,7 @@ if _ROOT not in sys.path:
 DB_PATH = os.path.join(_ROOT, "data", "marketing_analytics.duckdb")
 
 # ─────────────────────────────────────────────────────────────
-st.set_page_config(page_title="WBD Marketing Analytics", layout="wide",
+st.set_page_config(page_title="Marketing Analytics", layout="wide",
                    initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -86,6 +86,42 @@ section[data-testid="stSidebar"] { background:#fff; border-right:1px solid #E2E8
     background:#FEF9C3; border:1px solid #FDE047; border-radius:8px;
     padding:12px 16px; color:#713F12; font-size:13px; margin:8px 0;
 }
+
+/* Sidebar quick query buttons — white bg, dark text, never black */
+section[data-testid="stSidebar"] .stButton > button {
+    background:#F1F5F9 !important;
+    color:#0F172A !important;
+    border:1px solid #E2E8F0 !important;
+    border-radius:6px !important;
+    font-size:13px !important;
+    font-weight:500 !important;
+    text-align:left !important;
+    width:100% !important;
+    padding:8px 12px !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+    background:#E0E7FF !important;
+    color:#003087 !important;
+    border-color:#A5B4FC !important;
+}
+section[data-testid="stSidebar"] .stButton > button:focus,
+section[data-testid="stSidebar"] .stButton > button:active {
+    background:#E0E7FF !important;
+    color:#003087 !important;
+    border-color:#A5B4FC !important;
+}
+
+/* Text area — white background, dark text */
+.stTextArea textarea {
+    background:#ffffff !important;
+    color:#0F172A !important;
+    border:1px solid #CBD5E1 !important;
+    border-radius:8px !important;
+}
+.stTextArea textarea:focus {
+    border-color:#003087 !important;
+    box-shadow:0 0 0 2px rgba(0,48,135,0.1) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,7 +131,7 @@ st.markdown("""
      margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
   <div>
     <span style="color:#fff;font-size:20px;font-weight:800;letter-spacing:1px;">
-      WARNER BROS. DISCOVERY
+      MARKETING ANALYTICS TEAM
     </span>
     <span style="color:rgba(255,255,255,0.55);font-size:12px;margin-left:14px;">
       Singapore · Marketing Analytics
