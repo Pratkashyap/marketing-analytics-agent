@@ -16,5 +16,3 @@ __pycache__/
 # OS
 .DS_Store
 
-# Generated PDF (large binary — keep local only)
-linkedin-article/*.pdf
