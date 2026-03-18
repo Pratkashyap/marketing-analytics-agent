@@ -284,7 +284,13 @@ class Orchestrator:
         )
         emit("critic", "done", f"Score: {critic_result.get('score', '?')}/10")
 
-        final_response = critic_result.get("reviewed_insight", raw_insight)
+        reviewed = critic_result.get("reviewed_insight", raw_insight)
+        # Strip quality badge line — show it in pipeline panel, not in response body
+        rev_lines = reviewed.split("\n")
+        if rev_lines and any(x in rev_lines[0] for x in ["Quality Score","✅","⚡","🔧"]):
+            final_response = "\n".join(rev_lines[1:]).strip()
+        else:
+            final_response = reviewed
 
         emit("orchestrator", "done")
         return {

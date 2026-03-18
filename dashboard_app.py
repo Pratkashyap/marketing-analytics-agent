@@ -95,19 +95,24 @@ section[data-testid="stSidebar"] { background:#fff; border-right:1px solid #E2E8
     border-radius:12px; padding:2px 10px; font-size:11px;
     color:#003087; font-weight:600; margin:2px 0; line-height:1.8;
 }
-/* Chat bubbles — agent response uses st.markdown so no inline body */
-.chat-agent-hdr {
-    background:#F8FAFC; border:1px solid #E2E8F0;
-    border-radius:12px 12px 0 0; border-bottom:none;
-    padding:8px 14px 4px; margin:6px 0 0;
-    color:#64748B; font-size:12px; font-weight:700;
+/* st.chat_message styling */
+[data-testid="stChatMessage"] {
+    background:#fff; border:1px solid #E2E8F0;
+    border-radius:10px; padding:4px 8px; margin:4px 0;
 }
-/* The st.container that holds agent markdown */
-.chat-agent-hdr + div > div {
-    border:1px solid #E2E8F0; border-top:none;
-    border-radius:0 0 12px 12px;
-    padding:8px 14px 12px; background:#fff;
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li,
+[data-testid="stChatMessage"] td {
     font-size:14px; line-height:1.6; color:#0F172A;
+}
+[data-testid="stChatMessage"] table {
+    font-size:12px; width:100%;
+}
+[data-testid="stChatMessage"] th {
+    background:#F1F5F9; color:#003087; font-weight:700;
+}
+[data-testid="stChatMessage"] td {
+    border-bottom:1px solid #F1F5F9;
 }
 
 /* ── ALL secondary buttons (sidebar + main area) ─────────────
@@ -527,15 +532,23 @@ with tab1:
                 else:
                     i += 1
             for u_msg, a_msg in reversed(pairs):
-                # User bubble — HTML
-                st.markdown(
-                    f'<div class="chat-user"><b>You</b><br>{u_msg["content"]}</div>',
-                    unsafe_allow_html=True)
-                # Agent response — render as markdown so tables/bullets/bold work
-                st.markdown('<div class="chat-agent-hdr"><b>Agent Team</b></div>',
-                            unsafe_allow_html=True)
-                with st.container(border=False):
-                    st.markdown(a_msg["content"])
+                # User message
+                with st.chat_message("user"):
+                    st.markdown(u_msg["content"])
+
+                # Agent response — strip quality badge line, show as caption
+                content = a_msg["content"]
+                badge   = ""
+                lines   = content.split("\n")
+                if lines and any(x in lines[0] for x in
+                                 ["Quality Score", "✅", "⚡", "🔧"]):
+                    badge   = lines[0]
+                    content = "\n".join(lines[1:]).strip()
+
+                with st.chat_message("assistant", avatar="📊"):
+                    if badge:
+                        st.caption(badge)
+                    st.markdown(content)
 
 
 # ══════════════════════════════════════════════════════════════
