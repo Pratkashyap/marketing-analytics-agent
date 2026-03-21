@@ -2,14 +2,14 @@
   <img src="assets/banner.svg" alt="MARKETING ANALYTICS — Team of 7 AI Agents" width="100%"/>
 </p>
 
-> A 7-agent AI system that answers marketing analytics questions in under 15 seconds.
-> Built as a weekend sprint. Documented publicly as it grows.
+> A fully orchestrated, multi-agent AI marketing analytics platform.
+> Documented publicly as it grows.
 
 ---
 
 ## What This Is
 
-A fully orchestrated, multi-agent AI marketing analytics platform built from scratch using Python, DuckDB, and the Anthropic Claude API.
+A multi-agent AI marketing analytics platform built using Python, DuckDB, and the Anthropic Claude API.
 
 Ask it any marketing question in plain English. It pulls the data, analyses performance, checks creative fatigue, recommends budget reallocation, scores the quality of its own output — and returns a structured, CMO-ready answer.
 
@@ -229,9 +229,9 @@ This project is documented publicly in batches. Follow the journey on LinkedIn �
 
 ## The Build Series
 
-This project is part of **[SERIES NAME]** — a building-in-public series documenting the journey from weekend sprint to production-grade AI platform.
+This project is part of **[SERIES NAME]** — a building-in-public series documenting the journey from initial build to production-grade AI platform.
 
-- **Batch 1:** 7 agents built, architecture documented ← *you are here*
+- **Batch 1:** 7 agents built, architecture documented ← *current*
 - **Batch 2:** Dashboard evolution
 - **Batch 3:** Second use case
 - **Batch 4:** Multi-use-case architecture
@@ -256,4 +256,4 @@ MIT — use it, build on it, share what you make.
 
 ---
 
-*V1 · Built in one weekend sprint · Documented publicly*
+*V1 · Documented publicly*
