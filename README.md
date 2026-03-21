@@ -1,4 +1,6 @@
-# 🎬 Marketing Analytics Agent
+<p align="center">
+  <img src="assets/banner.svg" alt="MARKETING ANALYTICS — Team of 7 AI Agents" width="100%"/>
+</p>
 
 > A 7-agent AI system that answers marketing analytics questions in under 15 seconds.
 > Built as a weekend sprint. Documented publicly as it grows.

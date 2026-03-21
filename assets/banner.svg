@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380" viewBox="0 0 900 380">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+      .title { font-family: 'Press Start 2P', monospace; font-size: 80px; }
+      .title2 { font-family: 'Press Start 2P', monospace; font-size: 80px; }
+      .tagline { font-family: 'Press Start 2P', monospace; font-size: 22px; }
+    </style>
+  </defs>
+  <rect width="900" height="380" fill="#000000" rx="12"/>
+  <!-- Shadow layer line 1 -->
+  <text x="450" y="120" text-anchor="middle" class="title" fill="#5C2D06" dx="5" dy="5">MARKETING</text>
+  <!-- Main title line 1 -->
+  <text x="450" y="120" text-anchor="middle" class="title" fill="#E8720C">MARKETING</text>
+  <!-- Shadow layer line 2 -->
+  <text x="450" y="215" text-anchor="middle" class="title2" fill="#5C2D06" dx="5" dy="5">ANALYTICS</text>
+  <!-- Main title line 2 -->
+  <text x="450" y="215" text-anchor="middle" class="title2" fill="#E8720C">ANALYTICS</text>
+  <!-- Tagline shadow -->
+  <text x="450" y="290" text-anchor="middle" class="tagline" fill="#5C2D06" dx="3" dy="3">TEAM OF 7 AI AGENTS</text>
+  <!-- Tagline -->
+  <text x="450" y="290" text-anchor="middle" class="tagline" fill="#E8720C" letter-spacing="2">TEAM OF 7 AI AGENTS</text>
+  <!-- Subtitle -->
+  <text x="450" y="340" text-anchor="middle" font-family="monospace" font-size="14" fill="#888888" letter-spacing="3">ANSWERS IN UNDER 15 SECONDS</text>
+</svg>
