@@ -1,34 +1,35 @@
 POST 01 — INTRO / ANNOUNCE
 Publish: Monday, Week 1
-Screenshot to attach: agent_pipeline_diagram.png (attach this — clearest proof of the system at a glance)
-First comment: paste GitHub link — github.com/Pratkashyap/marketing-analytics-agent
-Hashtags: add to first comment, not the post body
+Screenshot to attach: agent_pipeline_diagram.png
+Hashtags: first comment only — not in post body
 -----------------------------------------------------
 
-I built a 7-agent AI marketing analytics team using Python and the Claude API.
+I replaced a 5-person marketing analytics workflow with 7 AI agents.
 
-Not a chatbot. Not a dashboard. A team — where each AI agent has a specific role, a defined expertise, and one job to do.
-You ask a question in plain English. The team handles the rest.
+Here's the team:
 
-Here's who's on it:
+🧠 Orchestrator — reads your question, picks who handles it
+📊 Data Agent — writes the SQL, hits live data, no analyst needed
+🔍 Analysis Hub — tells you what the numbers actually mean
+🎨 Creative Analyst — spots ad fatigue before your ROAS drops
+💰 Budget Optimizer — exact reallocation, not "consider shifting spend"
+📈 Dashboard Agent — builds a live visual report on demand
+⚖️ Quality Critic — scores every answer before you see it. Below 6 out of 10 — it rewrites it.
 
-Each agent has one job and one job only.
-The Orchestrator reads the question and decides who handles it.
-The Data Agent writes the SQL and hits the database.
-The Analysis Hub interprets what the numbers mean.
-The Creative Analyst flags ad fatigue before performance drops.
-The Budget Optimizer gives specific reallocation — not vague advice.
-The Dashboard Agent generates a live visual report on demand.
-The Quality Critic scores every answer before it reaches you. Below 6 out of 10 — it rewrites it.
+Cost per query: $0.03
+Runs on a laptop. No cloud. No SaaS.
 
-The hardest part was not building the agents.
-It was stopping them from doing each other's jobs.
+Built with Python + Claude API.
 
-Comment AGENT — I'll reply with the full GitHub repo and architecture breakdown.
+Comment AGENT — I'll reply with the full breakdown.
 
 -----------------------------------------------------
 FIRST COMMENT (post within 60 seconds of publishing):
-Full architecture breakdown and source code:
-github.com/Pratkashyap/marketing-analytics-agent
+
+Full build — all 7 agents documented phase by phase:
+
+All agents deep dive: https://www.notion.so/3270f002382e81d8b75ccca5c8149e3a
+Architecture design: https://www.notion.so/3270f002382e8157a274ee7b0cfdc1cf
+Full project hub: https://www.notion.so/3270f002382e8112a2cecf50f8b164a5
 
 #AIAgents #BuildingInPublic #ProductDevelopment #MarketingTech #ClaudeAPI #Python #MultiAgentAI
