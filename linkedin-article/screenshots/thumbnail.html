@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.thumb {
+  width: 900px; height: 470px;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  border: 3px solid #E8720C;
+}
+.thumb::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(232,114,12,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(232,114,12,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.c { position: absolute; width: 36px; height: 36px; border-color: #E8720C; border-style: solid; opacity: 0.7; }
+.tl { top:16px; left:16px; border-width: 3px 0 0 3px; }
+.tr { top:16px; right:16px; border-width: 3px 3px 0 0; }
+.bl { bottom:16px; left:16px; border-width: 0 0 3px 3px; }
+.br { bottom:16px; right:16px; border-width: 0 3px 3px 0; }
+.main { font-family: 'Press Start 2P', monospace; color: #E8720C; text-align: center; position: relative; z-index: 2; }
+.l1 { font-size: 56px; text-shadow: 4px 4px 0 #7A3A06, 7px 7px 0 #3D1D03; display: block; }
+.l2 { font-size: 36px; text-shadow: 3px 3px 0 #7A3A06, 6px 6px 0 #3D1D03; display: block; margin-top: 12px; }
+.l3 { font-size: 36px; text-shadow: 3px 3px 0 #7A3A06, 6px 6px 0 #3D1D03; display: block; margin-top: 10px; }
+.tags { display: flex; gap: 12px; margin-top: 28px; position: relative; z-index: 2; }
+.tag { font-family: 'Press Start 2P', monospace; font-size: 10px; color: #000; background: #E8720C; padding: 7px 14px; }
+.tag.out { background: transparent; color: #E8720C; border: 2px solid #E8720C; }
+.byline { position: absolute; bottom: 20px; right: 24px; font-family: 'Press Start 2P', monospace; font-size: 8px; color: rgba(232,114,12,0.4); z-index: 2; }
+</style>
+</head>
+<body>
+<div class="thumb">
+  <div class="c tl"></div><div class="c tr"></div>
+  <div class="c bl"></div><div class="c br"></div>
+  <div class="main">
+    <span class="l1">CLAUDE CODE</span>
+    <span class="l2">MARKETING ANALYTICS</span>
+    <span class="l3">7 AI AGENT TEAM</span>
+  </div>
+  <div class="tags">
+    <div class="tag">CLAUDE API</div>
+    <div class="tag out">PYTHON</div>
+    <div class="tag">7 AGENTS</div>
+    <div class="tag out">LIVE DASHBOARD</div>
+  </div>
+  <div class="byline">BUILD AI RAW - PRATEEK - 2026</div>
+</div>
+</body>
+</html>
