@@ -4,7 +4,8 @@ Screenshot to attach: agent_pipeline_diagram.png
 Hashtags: first comment only — not in post body
 -----------------------------------------------------
 
-I replaced a 5-person marketing analytics workflow with 7 AI agents.
+I built a 7-agent AI marketing analytics team.
+Each agent has a specific role, a defined expertise, and one job to do.
 
 Here's the team:
 
@@ -20,6 +21,10 @@ Cost per query: $0.03
 Runs on a laptop. No cloud. No SaaS.
 
 Built with Python + Claude API.
+
+Over the next 2 weeks I'll break down how each agent was built, what broke, and what the numbers actually showed.
+
+Next up — the agent that rewrites bad answers before you ever see them. And why it was the hardest one to get right.
 
 Comment AGENT — I'll reply with the full breakdown.
 
