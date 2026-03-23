@@ -290,10 +290,10 @@ def build_pdf():
         "AGENT MODE  ·  BATCH 1 OF 5", s["tag"]))
     story.append(Paragraph(
         "I built a marketing analytics team that works 24/7, "
-        "costs $15/month, and answers in 12 seconds.",
+        "costs $15/month, and answers in under a minute.",
         s["title"]))
     story.append(Paragraph(
-        "Here's who's on it — and how I built them in a weekend.", s["subtitle"]))
+        "Here's who's on it — and how I built them.", s["subtitle"]))
     story.append(gold_rule())
     story.append(Spacer(1, 3*mm))
 
@@ -316,7 +316,7 @@ def build_pdf():
         "So I stopped looking for that team. I built it.", s["hook"]))
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
-        "Over one weekend sprint — 6 to 8 hours of focused building — I assembled a "
+        "In a focused sprint, I assembled a"
         "<b>7-person marketing analytics team</b>. Except every person is an AI agent "
         "with a specific role, a defined expertise, and a clear reporting line. "
         "They're always available. They don't have calendar conflicts. "
@@ -359,7 +359,7 @@ def build_pdf():
         ("📈", "Dashboard Agent", "The Reporting Analyst",
          "Generates a live Streamlit dashboard on demand. 4 tabs: Agent Chat, "
          "Performance Dashboard, Creative Health, Data Explorer. WBD-branded design. "
-         "Always built from live data. Launches in your browser in seconds."),
+         "Always built from live data. Launches in your browser instantly."),
 
         ("⚖️", "Quality Critic Agent", "The Editor",
          "Every insight — before it reaches you — is scored 0–10 across five dimensions: "
@@ -424,21 +424,21 @@ def build_pdf():
 
     pipeline = [
         "You → Orchestrator   (classifies: creative + performance question)",
-        "   → Data Agent      (pulls 30-day video creative data — 2.1 seconds)",
+        "   → Data Agent      (pulls 30-day video creative data)",
         "   → Analysis Hub    (\"ROAS down 0.6x WoW, CTR declining on 3 assets\")",
         "   → Creative Analyst (\"3 assets past fatigue threshold — 21+ days on-air\")",
         "   → Optimizer        (\"Reallocate to Carousel formats — projected +0.4x ROAS\")",
         "   → Quality Critic   (\"✅ Quality Score: 9/10 — Approved\")",
         "   → You              (full structured answer)",
         "",
-        "Total time: 11 seconds.",
+        "Total time: under a minute.",
     ]
     for line in pipeline:
         story.append(Paragraph(line, s["code"]))
 
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
-        "The answer your team would have had by Thursday. In 11 seconds.",
+        "The answer your team would have had by Thursday.",
         s["quote"]))
 
     # ── Screenshot 3 ─────────────────────────────────────────
@@ -569,7 +569,7 @@ def build_pdf():
     # Tags
     story.append(Paragraph(
         "#AIMarketing  #MarketingAnalytics  #MultiAgentAI  #BuildingInPublic  "
-        "#MarketingTech  #AIAgents  #AgentMode  #WeekendProject  #LLM  #Anthropic",
+        "#MarketingTech  #AIAgents  #AgentMode  #LLM  #Anthropic",
         s["tag"]))
 
     # ── Screenshot notes page ─────────────────────────────────

@@ -11,8 +11,8 @@
 | Goal | How We Address It |
 |---|---|
 | Show you're learning & progressing in AI | Article narrates the journey honestly — from zero to working system |
-| Weekend project framing | Sprint narrative: built Phases 1 & 2 in 6–8 hours |
-| Not fake click-bait | Real numbers, real tech, real struggle — no "I made $10K in a weekend" energy |
+| Sprint framing | Sprint narrative: focused execution, phase by phase |
+| Not fake click-bait | Real numbers, real tech, real struggle — no "I made $10K overnight" energy |
 | Building toward small AI company | Article ends with roadmap — 4–5 use cases, each a future article |
 | Publish in batches, not when perfect | Series strategy: V1 now → V2 after dashboard → V3 after 3 use cases |
 | People see you becoming an expert | Technical depth, architecture, specific tools — shows fluency |
@@ -41,7 +41,7 @@ BATCH 3 ──────────────── +4–6 weeks (2nd use c
    to solve a completely different problem."
 
 BATCH 4 ──────────────── +8–10 weeks (3–4 use cases)
-  "From weekend project to AI micro-agency: what 4 use cases taught me
+  "From side project to AI micro-agency: what 4 use cases taught me
    about building production-grade AI systems."
 
 BATCH 5 ──────────────── +12 weeks (company forming)
@@ -61,8 +61,8 @@ BATCH 5 ──────────────── +12 weeks (company form
 
 ### ▶ TITLE OPTIONS (Ranked by fit)
 
-**Option A — Weekend Project + Technical (Recommended)**
-> "I built a 7-agent AI marketing analytics system over a weekend.
+**Option A — Side Project + Technical (Recommended)**
+> "I built a 7-agent AI marketing analytics system from scratch.
 > Here's the architecture, the tech, and what I learned."
 
 Why: Honest, specific, shows ambition without hype. Technical audience respects the detail.
@@ -79,7 +79,7 @@ Why: Relatable, aspirational. Good if you want broader reach beyond tech.
 
 **Option C — Business Context First**
 > "What if your marketing team had an AI analyst available 24/7?
-> I built one from scratch — and it only took a weekend sprint."
+> I built one from scratch."
 
 Why: Business audience hook. More click-bait-adjacent but still grounded.
 
@@ -95,7 +95,7 @@ Why: Explicitly frames the series. Attracts followers who want to learn along wi
 
 ### ▶ RECOMMENDED TITLE (Best of all angles)
 ```
-"A weekend, 7 AI agents, and 112,000 rows of data:
+"7 AI agents, and 112,000 rows of data:
  How I built a marketing analytics system from scratch — and what's next."
 ```
 
@@ -107,8 +107,8 @@ Why: Explicitly frames the series. Attracts followers who want to learn along wi
 **What it covers:**
 - The spark: you work in marketing (at a media entertainment company in Singapore)
   and you see a gap — analytics is reactive, slow, expensive
-- "What if an AI system could answer any marketing question in under 15 seconds?"
-- "I decided to find out. Over one weekend. Starting from zero."
+- "What if an AI system could answer any marketing question in under a minute?"
+- "I decided to find out. Starting from zero."
 
 **Tone:** Personal. Real. Not "I built the future of marketing."
 **No mention of:** company name, real campaign data, real spend numbers

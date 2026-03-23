@@ -4,8 +4,8 @@
 
 ---
 # TITLE:
-# Marketing teams spend 3 days getting answers that should take 12 seconds.
-# I spent one weekend building the fix — 7 AI agents, 112,000 rows, zero vendor lock-in.
+# Marketing teams spend 3 days getting answers that should be instant.
+# I built the fix — 7 AI agents, 112,000 rows, zero vendor lock-in.
 ---
 
 ---
@@ -32,7 +32,7 @@ The answer, when it arrived, was: *"Looks like creative fatigue."*
 
 That's it. No drill-down to which creatives. No timeline of when it started. No recommendation on what to do next. No budget impact calculation.
 
-I remember thinking: **an AI could have answered this in 15 seconds — and done it better.**
+I remember thinking: **an AI could have answered this — and done it better.**
 
 So I built one.
 
@@ -40,13 +40,13 @@ So I built one.
 
 ## What I Actually Built
 
-Over one weekend sprint — 6 to 8 hours of focused execution — I built a **7-agent AI marketing analytics system** from scratch.
+Over In a focused sprint, I built a **7-agent AI marketing analytics system** from scratch.
 
 Not a chatbot. Not a dashboard plugin. A fully orchestrated, multi-agent system where each AI agent has a specific job, a defined expertise, and passes work to the next specialist in the chain.
 
 Ask it a question. It figures out what data to pull, writes and runs the SQL query, analyzes the results, checks for creative fatigue, calculates budget reallocation in actual currency, scores the quality of its own output — and returns a structured, CMO-ready answer.
 
-**In under 15 seconds.**
+In under a minute.
 
 I'm not pitching a product. I'm documenting a build — in public, in batches, as it gets better. This is Batch 1.
 
@@ -62,7 +62,7 @@ That chain — data → human interpretation → recommendation → action — t
 
 The companies that close this loop with AI aren't going to have a small edge. They're going to have a **structural advantage** that compounds over time.
 
-I wanted to understand how to build that. Not talk about it — build it. Hands on, from scratch, on a laptop, in a weekend.
+I wanted to understand how to build that. Not talk about it — build it. Hands on, from scratch, on a laptop.
 
 Here's exactly what I built.
 
@@ -73,7 +73,7 @@ Here's exactly what I built.
 Before I wrote a single line of code, I built two documents:
 
 1. **An architecture blueprint** — what the system should do, what each agent is responsible for, how they communicate
-2. **A sprint battle plan** — hour-by-hour execution, compressed from a 10-week timeline to a single weekend using AI pair programming
+2. **A sprint battle plan** — hour-by-hour execution, compressed into a focused sprint using AI pair programming
 
 The architecture follows a **Supervisor pattern** — one Orchestrator agent receives every question, decides which specialists to involve, coordinates the workflow, and synthesizes the final answer.
 
@@ -150,9 +150,9 @@ I'd spent three hours building the data layer and the first two agents. The Orch
 
 And watched the terminal.
 
-The Orchestrator classified the question in 0.8 seconds. Routed it to the Data Agent. SQL generated, query ran — 2.1 seconds. Analysis Agent picked it up. Creative Analyst ran in parallel. Optimizer calculated reallocation. Critic scored the output 9/10.
+The Orchestrator classified the question, routed it to the Data Agent, SQL generated and ran. Analysis Agent picked it up. Creative Analyst ran in parallel. Optimizer calculated reallocation. Critic scored the output 9/10.
 
-The full response came back in **11 seconds**.
+The full response came back in under a minute.
 
 It said: *"Video creative CTR has declined 28% over the last 21 days on Meta Reels and TikTok — consistent with a fatigue curve. Three specific creative variants are past their effective window. Recommend pausing these and reallocating that spend to the two Carousel formats currently running at 2.8x the average CTR."*
 
@@ -162,7 +162,7 @@ I sat there for a moment.
 
 That answer — with that specificity, that structure, that speed — would have taken my team until Thursday.
 
-It took the system 11 seconds.
+It took the system under a minute.
 
 That was the moment I knew this was worth building properly.
 
@@ -226,7 +226,7 @@ Not a startup pitch. Not a product launch. A documented learning journey that's 
 
 I'm not an AI researcher. I don't have a CS degree. I'm a marketing professional who got curious, made a plan, and executed a sprint.
 
-The tools available right now — Claude API, DuckDB, Streamlit, Python — are good enough that the gap between "curious" and "working AI system" is measured in weekends, not years.
+The tools available right now — Claude API, DuckDB, Streamlit, Python — are good enough that the gap between "curious" and "working AI system" is measured in focused sprints, not years.
 
 What it takes isn't genius. It's a blueprint, a battle plan, and a willingness to debug a DataFrame error at midnight because you know what the output *should* feel like.
 

@@ -285,7 +285,7 @@ def on_first_page(canv, doc):
     canv.setFont("Helvetica", 11)
     canv.setFillColor(HexColor("#A5B4FC"))
     canv.drawString(20*mm, H - 64*mm,
-        "From natural language question to actionable insight in under 30 seconds")
+        "From natural language question to actionable insight in under a minute")
     # Footer
     canv.setFillColor(MUTED)
     canv.setFont("Helvetica", 8)
@@ -364,7 +364,7 @@ def build():
         "<b>7-agent AI pipeline</b> that connects directly to 112,000 rows of live marketing "
         "performance data for Warner Bros. Discovery's Singapore operation. You type a question. "
         "The system routes it through a chain of specialized AI agents, each doing one job well, "
-        "and returns a structured, quality-checked analysis — usually in under 30 seconds.",
+        "and returns a structured, quality-checked analysis — usually in under a minute.",
         S["body"]
     ))
     story.append(SP(6))
@@ -611,7 +611,7 @@ def build():
         ("5",  HexColor("#16A34A"),    "Quality Critic scores the response",
          "Score: 9/10 — Approved. Deduction: ROAS targets not explicitly stated inline. "
          "Response passes quality gate and is delivered to dashboard."),
-        ("✓",  GREEN,                  "Dashboard displays result in 27.2 seconds",
+        ("✓",  GREEN,                  "Dashboard displays result in under a minute",
          "Full analysis, agent pipeline log with per-step timings, and actionable "
          "budget recommendation — all from a single plain-English question."),
     ]
@@ -724,7 +724,7 @@ def build():
     # Closing
     story.append(P(
         "This is a working prototype, not a polished product. Every component — agents, "
-        "SQL, dashboard, this article — was built iteratively over evenings and weekends "
+        "SQL, dashboard, this article — was built iteratively"
         "using only open tools and the Claude API. The goal was to prove that a single person "
         "with modern AI tooling can replace a workflow that used to require a team of five.",
         S["body"]
