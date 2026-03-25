@@ -1,45 +1,33 @@
-POST 03 — ARCHITECTURE
-Publish: Friday, Week 1
-Screenshot to attach: agent_pipeline_diagram.png
+POST 03 — HOW IT WORKS
+Publish: Wednesday, Week 1
+Screenshots to attach: agent_pipeline_diagram.png (image 1), tech_stack.png (image 2)
 Hashtags: first comment only — not in post body
 -----------------------------------------------------
 
-7 agents. None of them talk to each other directly.
+Think of how a marketing team actually runs.
 
-That was the core architectural decision: Supervisor / Orchestrator pattern.
+Manager takes the brief. Delegates. Each specialist owns their domain. No one does someone else's job.
 
-One central agent receives every question.
-It classifies intent, decides who handles what, and synthesises the final answer.
-The specialists never communicate directly with each other.
+This system works the same way.
 
-Three patterns exist for multi-agent systems:
+One Orchestrator. Six specialists. Clear lanes — Data. Analysis. Creative. Budget. Dashboard. Quality.
 
-Swarm — agents talk peer-to-peer. Flexible, but impossible to debug.
-Pipeline — fixed sequence. Predictable, but rigid.
-Supervisor — one coordinator, clear specialists. Explicit, debuggable, production-ready.
+Structured delegation. Feels like a real team. Actually works like one.
 
-I chose Supervisor for one reason: when something breaks, you know exactly where.
+That's what makes this production-ready, not just a demo.
 
-But the bigger lesson wasn't what each agent should do.
-It was what each agent must never do.
+Stack: Python + Claude Sonnet API. SQLite. Streamlit. No cloud. Runs on a laptop.
+$0.03 per query. 7 agents. Under 1 minute.
 
-The Orchestrator's system prompt contains this line:
-"You must not query data. You must not perform analysis. You must not generate recommendations."
+Next — 112,000 rows of live marketing data. One plain English question. Here's what happened.
 
-Without that constraint, it does everything. The specialists become redundant.
-The outputs overlap. The system becomes inconsistent.
-
-Narrow roles. Explicit prohibitions. That's what makes 7 agents feel like one system.
-
-Next — I gave this system access to 112,000 rows of marketing data. Here's what the Data Agent does with a plain English question.
-
-Comment ARCHITECT — I'll reply with the full architecture breakdown.
+Comment SYSTEM — I'll reply with the full breakdown.
 
 -----------------------------------------------------
 FIRST COMMENT (post within 60 seconds of publishing):
 
-Full architecture deep dive — why Supervisor pattern, how each agent was designed:
+Architecture deep dive — how each agent was designed:
 Phase 2 — Architecture: https://www.notion.so/3270f002382e8157a274ee7b0cfdc1cf
 Full project hub: https://www.notion.so/3270f002382e8112a2cecf50f8b164a5
 
-#AIAgents #MultiAgentAI #AIArchitecture #BuildingInPublic #ClaudeAPI #Python #ProductAI
+#AIAgents #MultiAgentAI #ClaudeAPI #Python #BuildingInPublic #AIEngineering #ProductAI
