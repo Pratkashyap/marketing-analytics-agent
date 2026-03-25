@@ -1,5 +1,5 @@
-POST 06 — THE DASHBOARD
-Publish: Friday, Week 2
+POST 05 — THE DASHBOARD
+Publish: Monday, Week 2
 Screenshots to attach: performance_dashboard.png + creative_health_dashboard.png (attach both)
 Hashtags: first comment only — not in post body
 -----------------------------------------------------
@@ -11,23 +11,13 @@ No manual code. No cached data. A fresh dashboard from live data every time.
 
 4 tabs, built automatically:
 
-📊 Agent Chat — ask any question, watch all 7 agents fire in real time on screen
-📊 Performance Dashboard — KPIs, daily spend vs ROAS, platform budget split, business line targets
-📊 Creative Health — CTR by format, fatigue table, platform and format heatmap
-📊 Data Explorer — raw data, filters, CSV export
+– Agent Chat — ask any question, watch all 7 agents fire in real time
+– Performance Dashboard — KPIs, daily spend vs ROAS, platform budget split
+– Creative Health — CTR by format, fatigue table, platform and format heatmap
+– Data Explorer — raw data, filters, CSV export
 
 Every chart queries the database directly on page load.
 Live numbers. Always current.
-
-The hardest part wasn't the charts.
-It was Streamlit session state.
-
-The text input was resetting mid-pipeline.
-User types a question, clicks Send, text disappears.
-The pipeline fires on an empty string.
-
-The fix: three lines of code.
-But it took hours to find.
 
 That's the ratio in AI engineering. 90% working. 10% a bug you've never seen before.
 

@@ -1,30 +1,20 @@
-POST 05 — WHAT BROKE
-Publish: Wednesday, Week 2
+POST 04 — WHAT BROKE
+Publish: Friday, Week 1
 Screenshot to attach: tech_stack.png
 Hashtags: first comment only — not in post body
 NOTE: This post has the engagement hook — highest comment potential
 -----------------------------------------------------
 
-4 things broke while building this.
+2 things broke while building this.
 Nobody publishes these. I will.
 
-Failure 1 — The schema that cost 2 hours
-One table name was wrong in the agent's context.
-Every chart returned blank. No error. No warning. Just silence.
-Fix: copy your schema verbatim. Never type it from memory.
-
-Failure 2 — Agents doing each other's jobs
+Failure 1 — Agents doing each other's jobs
 The Orchestrator started analysing data.
 The Analyst started generating budget recommendations.
 Outputs overlapped. Responses contradicted each other.
 Fix: system prompts need explicit prohibitions, not just a job description.
 
-Failure 3 — The Streamlit session state bug
-User types a question. Clicks Send. Watches their text disappear.
-The pipeline fires on an empty string. Returns a confused response.
-Fix: three lines of code. Never use value= and key= together on a text input.
-
-Failure 4 — Vague queries routing to everything
+Failure 2 — Vague queries routing to everything
 "How are things going?" activated all 7 agents simultaneously.
 Pipeline ran 3x longer. Output tried to cover everything at once.
 Fix: classify intent before routing. Every query gets categorised first.

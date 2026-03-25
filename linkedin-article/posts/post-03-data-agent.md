@@ -1,5 +1,5 @@
-POST 04 — THE DATA AGENT
-Publish: Monday, Week 2
+POST 03 — THE DATA AGENT
+Publish: Wednesday, Week 1
 Screenshot to attach: data_explorer_sql.png
 Hashtags: first comment only — not in post body
 -----------------------------------------------------
@@ -13,23 +13,10 @@ No BI tool. No dashboard to navigate. No analyst to brief.
 Type: "Which campaigns are below their ROAS target this month?"
 The agent writes the SQL, executes it, and returns the answer with a plain English summary.
 
-But here's what cost me 2 hours:
-
-The agent's system prompt had the table named fact_performance.
-The actual table was fact_daily_performance.
-
-Every query was syntactically valid.
-Every chart returned blank.
-No error. No warning. Just silence.
-
-The fix: copy your actual schema directly into the agent's system prompt. Never type it from memory. Never abbreviate. One character off breaks everything silently.
-
-That's the most important technical lesson in this entire build.
-
 The agents are only as good as the context you give them.
 Garbage in, silence out.
 
-Next — 4 more things broke. Nobody publishes these. I will.
+Next — 2 things broke while building this. Nobody publishes these. I will.
 
 Comment DATA — I'll reply with the full data layer breakdown.
 
