@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f9f6f1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px 0;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 24px;
+    line-height: 1.2;
+    width: 960px;
+  }
+  h1 span { color: #4a7c3f; }
+
+  .diagram {
+    position: relative;
+    width: 960px;
+    height: 730px;
+  }
+
+  .diagram svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 960px;
+    height: 730px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .box {
+    position: absolute;
+    width: 280px;
+    height: 150px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid #e8e0d4;
+    padding: 14px 13px;
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .box.highlight {
+    border: 2.5px solid #e85c3a;
+    background: #fff8f6;
+  }
+  .team-box {
+    position: absolute;
+    left: 0; top: 570px;
+    width: 960px;
+    height: 116px;
+    background: #f0f7ee;
+    border: 2px solid #4a7c3f;
+    border-radius: 12px;
+    padding: 14px 20px;
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .box-header { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+  .box-num {
+    font-size: 9.5px; font-weight: 700;
+    background: #f0ece6; color: #888;
+    border-radius: 4px; padding: 2px 6px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .box.highlight .box-num { background: #fde8e2; color: #e85c3a; }
+  .box-title { font-size: 12px; font-weight: 700; color: #1a1a1a; line-height: 1.2; }
+
+  .items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 52px; }
+  .icon { font-size: 17px; line-height: 1; }
+  .label { font-size: 9px; color: #555; text-align: center; line-height: 1.25; font-weight: 500; }
+
+  .team-items { display: flex; justify-content: space-between; gap: 6px; }
+  .team-items .item { flex: 1; }
+
+  .badge { margin-top: 20px; text-align: center; }
+  .badge span {
+    display: inline-block; background: #1a1a1a; color: #fff;
+    font-size: 12px; font-weight: 700; padding: 9px 28px;
+    border-radius: 20px; letter-spacing: 1px;
+  }
+  .badge em { color: #4caf7d; font-style: normal; }
+</style>
+</head>
+<body>
+
+<h1>How I Built a <span>7-Agent Marketing</span><br>Analytics AI Team</h1>
+
+<div class="diagram">
+
+  <!-- ═══════ SVG LINES ═══════ -->
+  <svg>
+    <defs>
+      <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0, 9 3.5, 0 7" fill="#4a7c3f"/>
+      </marker>
+    </defs>
+
+    <!-- ROW 1: 1 → 2 → 3 -->
+    <line x1="292" y1="75" x2="338" y2="75" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="622" y1="75" x2="668" y2="75" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- 3 → 4 (snake: down from box3, sweep left to box4) -->
+    <polyline points="810,152 810,172 150,172 150,192"
+      fill="none" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- ROW 2: 4 → 5 → 6 -->
+    <line x1="292" y1="267" x2="338" y2="267" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="622" y1="267" x2="668" y2="267" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- 6 → 7 (snake: down from box6, sweep left to box7) -->
+    <polyline points="810,342 810,362 150,362 150,382"
+      fill="none" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- ROW 3: 7 → 8 → 9 -->
+    <line x1="292" y1="457" x2="338" y2="457" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="622" y1="457" x2="668" y2="457" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- 8 → Agents (down from box8 center to team top) -->
+    <line x1="480" y1="532" x2="480" y2="568" stroke="#4a7c3f" stroke-width="2" marker-end="url(#arr)"/>
+  </svg>
+
+  <!-- ═══════ ROW 1: Boxes 1, 2, 3 ═══════ -->
+  <div class="box" style="left:10px; top:0;">
+    <div class="box-header"><span class="box-num">1.</span><span class="box-title">Define Purpose & Scope</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🎯</div><div class="label">Marketing analytics Q&A</div></div>
+      <div class="item"><div class="icon">💬</div><div class="label">Plain English → answers</div></div>
+      <div class="item"><div class="icon">✅</div><div class="label">8.9/10 quality target</div></div>
+      <div class="item"><div class="icon">🔒</div><div class="label">Single user V1</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:340px; top:0;">
+    <div class="box-header"><span class="box-num">2.</span><span class="box-title">System Prompt Design</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">📋</div><div class="label">One role per agent</div></div>
+      <div class="item"><div class="icon">🚫</div><div class="label">Explicit prohibitions</div></div>
+      <div class="item"><div class="icon">🧱</div><div class="label">No cross-agent tasks</div></div>
+      <div class="item"><div class="icon">🛡️</div><div class="label">Quality guardrails</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:670px; top:0;">
+    <div class="box-header"><span class="box-num">3.</span><span class="box-title">Choose LLM</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🤖</div><div class="label">Claude Sonnet API</div></div>
+      <div class="item"><div class="icon">⚡</div><div class="label">Per-agent API calls</div></div>
+      <div class="item"><div class="icon">💰</div><div class="label">$0.03 / query</div></div>
+      <div class="item"><div class="icon">⏱️</div><div class="label">Under 1 min response</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ ROW 2: Boxes 4, 5, 6 ═══════ -->
+  <div class="box" style="left:10px; top:192px;">
+    <div class="box-header"><span class="box-num">4.</span><span class="box-title">Tools & Integrations</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🐍</div><div class="label">Python</div></div>
+      <div class="item"><div class="icon">🦆</div><div class="label">DuckDB / SQLite</div></div>
+      <div class="item"><div class="icon">📈</div><div class="label">Streamlit</div></div>
+      <div class="item"><div class="icon">🔗</div><div class="label">Anthropic Claude API</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:340px; top:192px;">
+    <div class="box-header"><span class="box-num">5.</span><span class="box-title">Memory Systems</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🔄</div><div class="label">Per-session context</div></div>
+      <div class="item"><div class="icon">🗄️</div><div class="label">DuckDB 112K rows</div></div>
+      <div class="item"><div class="icon">📊</div><div class="label">SQL structured storage</div></div>
+      <div class="item"><div class="icon">🚧</div><div class="label">No cross-session V1</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:670px; top:192px;">
+    <div class="box-header"><span class="box-num">6.</span><span class="box-title">Orchestration</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🧠</div><div class="label">Supervisor pattern</div></div>
+      <div class="item"><div class="icon">🔀</div><div class="label">Orchestrator routing</div></div>
+      <div class="item"><div class="icon">⚙️</div><div class="label">7 parallel agents</div></div>
+      <div class="item"><div class="icon">⭐</div><div class="label">Quality scoring layer</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ ROW 3: Boxes 7, 8 ═══════ -->
+  <div class="box" style="left:10px; top:382px;">
+    <div class="box-header"><span class="box-num">7.</span><span class="box-title">User Interface</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🖥️</div><div class="label">Streamlit web app</div></div>
+      <div class="item"><div class="icon">💬</div><div class="label">Agent Chat tab</div></div>
+      <div class="item"><div class="icon">📊</div><div class="label">3 dashboard tabs</div></div>
+      <div class="item"><div class="icon">📥</div><div class="label">CSV export</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:340px; top:382px;">
+    <div class="box-header"><span class="box-num">8.</span><span class="box-title">Testing & Evals</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🏆</div><div class="label">Quality Critic 1–10</div></div>
+      <div class="item"><div class="icon">📈</div><div class="label">Score 6.5 → 8.9</div></div>
+      <div class="item"><div class="icon">💵</div><div class="label">$0.03 cost metric</div></div>
+      <div class="item"><div class="icon">⚡</div><div class="label">Under 20ms query</div></div>
+    </div>
+  </div>
+
+  <div class="box" style="left:670px; top:382px;">
+    <div class="box-header"><span class="box-num">9.</span><span class="box-title">Deploy & Share</span></div>
+    <div class="items">
+      <div class="item"><div class="icon">🚀</div><div class="label">Streamlit local deploy</div></div>
+      <div class="item"><div class="icon">🐙</div><div class="label">GitHub repo published</div></div>
+      <div class="item"><div class="icon">📝</div><div class="label">Notion phase docs</div></div>
+      <div class="item"><div class="icon">📣</div><div class="label">LinkedIn build series</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ TEAM BOX ═══════ -->
+  <div class="team-box">
+    <div class="box-header">
+      <span class="box-num" style="background:#d4eacd;color:#4a7c3f;">THE TEAM</span>
+      <span class="box-title">7 AI Agents — Each With One Job</span>
+    </div>
+    <div class="team-items">
+      <div class="item"><div class="icon">🧠</div><div class="label">Orchestrator</div></div>
+      <div class="item"><div class="icon">📊</div><div class="label">Data Agent</div></div>
+      <div class="item"><div class="icon">🔍</div><div class="label">Analysis Hub</div></div>
+      <div class="item"><div class="icon">🎨</div><div class="label">Creative Analyst</div></div>
+      <div class="item"><div class="icon">💰</div><div class="label">Budget Optimizer</div></div>
+      <div class="item"><div class="icon">📈</div><div class="label">Dashboard Agent</div></div>
+      <div class="item"><div class="icon">⭐</div><div class="label">Quality Critic</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="badge">
+  <span>⚡ <em>AI</em> by Prateek &nbsp;·&nbsp; Build AI Raw &nbsp;·&nbsp; 2026</span>
+</div>
+<div style="margin-top:14px; text-align:center;">
+  <a href="https://www.notion.so/3270f002382e8112a2cecf50f8b164a5" target="_blank"
+     style="font-family:'Inter',sans-serif; font-size:12px; color:#4a7c3f; font-weight:600; text-decoration:underline; letter-spacing:0.3px;">
+    📖 Full Build Documentation → Notion
+  </a>
+</div>
+
+</body>
+</html>
